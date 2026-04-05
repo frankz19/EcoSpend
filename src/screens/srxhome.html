@@ -1,0 +1,133 @@
+<style>
+  /* Contenedor Principal: Flexbox para centrado perfecto del bloque */
+  .hero-banner {
+    height: 100vh;
+    position: relative;
+    overflow: hidden; /* Previene desbordes */
+    display: flex; /* Centrado flexbox */
+    justify-content: center; /* Centrado horizontal del hijo */
+    align-items: center; /* Centrado vertical del hijo */
+    
+    background-color: #000; /* Fondo base negro para el overlay */
+  }
+
+  /* Imagen de Fondo: Usando etiqueta img para mejores prácticas */
+  .hero-banner .hero-background-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Llena el contenedor, recorta si es necesario */
+    object-position: center; /* Centra la imagen dentro de su caja */
+    z-index: 0; /* Capa del fondo */
+  }
+
+  /* Capa de Overlay (0.6): Añade profundidad y contraste */
+  .hero-banner .hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6); /* Overlay negro con 60% opacidad */
+    z-index: 1; /* Capa media */
+  }
+
+  /* Contenedor del Contenido: Posicionado sobre el overlay */
+  .hero-banner .content-hero-banner {
+    z-index: 2; /* Capa frontal, sobre el overlay */
+    text-align: left; /* CORRECCIÓN: Texto alineado a la izquierda dentro del bloque */
+    width: max-content; /* CORRECCIÓN: El bloque de contenido es solo tan ancho como el texto más largo */
+    padding: 0 20px; /* Padding de seguridad */
+  }
+
+  /* Estilos del h1 */
+  .hero-banner .content-hero-banner h1 {
+    color: white;
+    font-weight: 300;
+    font-size: 100px;
+    line-height: 100%;
+    max-width: 1280px;
+    /* margin: 0 auto; CORRECCIÓN: Eliminado por redundancia */
+    text-shadow: 0px 3px 6px rgba(0,0,0,0.3); /* Sombra de texto para mayor legibilidad */
+  }
+
+  /* Clase específica para texto en negrita */
+  .hero-banner .content-hero-banner .bold-text {
+    font-weight: 600;
+  }
+
+  /* Ajustes para Dispositivos Móviles */
+  @media (max-width: 1000px) {
+    .hero-banner {
+      height: 60vh;
+    }
+    
+    .hero-banner .content-hero-banner {
+      width: 100%; /* El bloque ocupa todo el ancho en móvil */
+      text-align: center; /* Texto centrado en móvil para mayor legibilidad */
+    }
+    
+    .hero-banner .content-hero-banner h1 {
+      font-size: 40px;
+    }
+  }
+</style>
+
+<div class="hero-banner">
+  <img src="https://cdn.shopify.com/s/files/1/0423/0499/5492/files/srx-main-banner.png?v=1774620175" alt="Lab Molecule Background" class="hero-background-image">
+  
+  <div class="hero-overlay"></div>
+  
+  <div class="content-hero-banner">
+    <h1 class="bold-text">Science<br>Designed</h1>
+    <h1>Human<br>Inspire</h1>
+  </div>
+</div>
+
+
+
+<section class="relative py-24 md:py-32 border-y border-border/15 overflow-hidden"><div class="absolute inset-0"><img src="/assets/molecular-abstract-d8nI6T4c.jpg" alt="" class="w-full h-full object-cover opacity-15"><div class="absolute inset-0 bg-background/80"></div></div><div class="relative z-10 container mx-auto px-6"><div class="" style="opacity: 1; transform: none;"><div class="max-w-3xl mx-auto text-center"><p class="font-body text-[10px] tracking-[0.3em] uppercase text-accent mb-6 font-light">Our Mission</p><h2 class="font-display text-3xl md:text-4xl lg:text-5xl font-light text-foreground tracking-wide leading-[1.2] mb-8">Pharmaceutical Dermatology for Complex Skin Conditions.</h2><p class="font-body text-sm text-muted-foreground leading-relaxed mb-6 font-light">Pharmaceutical dermatology systems engineered for complex and treatment-resistant skin conditions — including resistant hyperpigmentation, chronic irritation, atopic-prone skin, acne-prone skin, and progressive skin quality deterioration.</p><p class="font-body text-sm text-muted-foreground leading-relaxed font-light">Mechanism-based formulation. Structured clinical integration. Long-term dermatological stability. Focused on biological precision and controlled modulation.</p></div></div></div></section>
+<section class="py-20 bg-card/30"><div class="container mx-auto px-6"><div class="grid grid-cols-2 md:grid-cols-4 gap-8"><div class="" style="opacity: 1; transform: none;"><div class="text-center"><p class="font-display text-5xl md:text-6xl font-light text-foreground" style="opacity: 1;"><span style="opacity: 1;">14</span></p><p class="font-body text-xs tracking-[0.2em] uppercase text-muted-foreground mt-2">Depigmenting Agents</p></div></div><div class="" style="opacity: 1; transform: none;"><div class="text-center"><p class="font-display text-5xl md:text-6xl font-light text-foreground" style="opacity: 1;"><span style="opacity: 1;">8</span></p><p class="font-body text-xs tracking-[0.2em] uppercase text-muted-foreground mt-2">Anti-Aging Agents</p></div></div><div class="" style="opacity: 1; transform: none;"><div class="text-center"><p class="font-display text-5xl md:text-6xl font-light text-foreground" style="opacity: 1;"><span style="opacity: 1;">17</span></p><p class="font-body text-xs tracking-[0.2em] uppercase text-muted-foreground mt-2">Powerful Antioxidants</p></div></div><div class="" style="opacity: 1; transform: none;"><div class="text-center"><p class="font-display text-5xl md:text-6xl font-light text-foreground" style="opacity: 1;"><span style="opacity: 1;">98</span>%</p><p class="font-body text-xs tracking-[0.2em] uppercase text-muted-foreground mt-2">Effective Results</p></div></div></div></div></section>
+<section class="py-24 md:py-32"><div class="container mx-auto px-6"><div class="grid md:grid-cols-2 gap-8"><div class="" style="opacity: 1; transform: none;"><div class="p-8 md:p-10 border border-border/15 hover:border-accent/30 transition-colors duration-500 h-full"><div class="w-8 h-px bg-accent mb-6"></div><h3 class="font-display text-xl md:text-2xl text-foreground mb-4 font-light tracking-wide">Stubborn Skin Science</h3><p class="font-body text-xs text-muted-foreground leading-relaxed font-light">Advanced research focused on treatment-resistant hyperpigmentation, inflammatory skin states, barrier impairment, atopic tendencies, and acne dysregulation.</p></div></div><div class="" style="opacity: 1; transform: none;"><div class="p-8 md:p-10 border border-border/15 hover:border-accent/30 transition-colors duration-500 h-full"><div class="w-8 h-px bg-accent mb-6"></div><h3 class="font-display text-xl md:text-2xl text-foreground mb-4 font-light tracking-wide">Trifusion Technology</h3><p class="font-body text-xs text-muted-foreground leading-relaxed font-light">An integrated framework combining nanotechnology, computational chemistry, and biotechnology to optimize delivery precision, molecular stability, and predictable tissue response.</p></div></div><div class="" style="opacity: 1; transform: none;"><div class="p-8 md:p-10 border border-border/15 hover:border-accent/30 transition-colors duration-500 h-full"><div class="w-8 h-px bg-accent mb-6"></div><h3 class="font-display text-xl md:text-2xl text-foreground mb-4 font-light tracking-wide">Regenerative Dermatology</h3><p class="font-body text-xs text-muted-foreground leading-relaxed font-light">Ongoing development in regenerative pathways including PDRN-mediated signaling and exosome-based communication systems for structured skin recovery and quality restoration.</p></div></div><div class="" style="opacity: 1; transform: none;"><div class="p-8 md:p-10 border border-border/15 hover:border-accent/30 transition-colors duration-500 h-full"><div class="w-8 h-px bg-accent mb-6"></div><h3 class="font-display text-xl md:text-2xl text-foreground mb-4 font-light tracking-wide">Skin Quality &amp; Quiet Beauty</h3><p class="font-body text-xs text-muted-foreground leading-relaxed font-light">Pharmaceutical systems designed to restore tone uniformity, barrier strength, and dermal resilience. Quiet beauty is achieved through biological balance—not aggressive correction.</p></div></div></div></div></section>
+<section class="py-24 border-y border-border/15"><div class="container mx-auto px-6"><div class="" style="opacity: 1; transform: none;"><div class="text-center mb-16"><p class="font-body text-[10px] tracking-[0.3em] uppercase text-accent mb-3 font-light">Triple Action Effect</p><h2 class="font-display text-3xl md:text-4xl font-light text-foreground tracking-wide">Brighten. Rejuvenate. Protect.</h2></div></div><div class="grid md:grid-cols-3 gap-8"><div class="" style="opacity: 1; transform: none;"><div class="text-center p-8 border border-border/15 hover:border-accent/30 transition-colors duration-500"><p class="font-body text-[10px] tracking-[0.2em] uppercase text-accent mb-4">Modulate</p><h3 class="font-display text-lg text-foreground mb-3 font-light tracking-wide">Brightening Action</h3><p class="font-body text-xs text-muted-foreground leading-relaxed font-light">Modulates melanin production to even out skin tone and reduce dark spots.</p></div></div><div class="" style="opacity: 1; transform: none;"><div class="text-center p-8 border border-border/15 hover:border-accent/30 transition-colors duration-500"><p class="font-body text-[10px] tracking-[0.2em] uppercase text-accent mb-4">Renew</p><h3 class="font-display text-lg text-foreground mb-3 font-light tracking-wide">Anti-Aging Action</h3><p class="font-body text-xs text-muted-foreground leading-relaxed font-light">Promotes cellular renewal and strengthens the extracellular matrix, improving elasticity and firmness.</p></div></div><div class="" style="opacity: 1; transform: none;"><div class="text-center p-8 border border-border/15 hover:border-accent/30 transition-colors duration-500"><p class="font-body text-[10px] tracking-[0.2em] uppercase text-accent mb-4">Strengthen</p><h3 class="font-display text-lg text-foreground mb-3 font-light tracking-wide">Antioxidant Action</h3><p class="font-body text-xs text-muted-foreground leading-relaxed font-light">Reinforces the skin barrier and protects against the harmful effects of free radicals.</p></div></div></div></div></section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script src="https://cdn.tailwindcss.com"></script>
+{% schema %}
+{
+  "name": "hero-banner",
+  "settings": [
+    {
+      "type": "text",
+      "id": "hero-banner",
+      "label": "hero-banner",
+      "default": "hero-banner"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Hero Banner",
+      "category": "Web Team"
+    }
+  ]
+}
+{% endschema %}
+
+{% stylesheet %}
+{% endstylesheet %}
+
+{% javascript %}
+{% endjavascript %}
