@@ -6,9 +6,9 @@ import {
   TouchableOpacity, 
   StyleSheet, 
   Alert, 
-  SafeAreaView,
   ScrollView 
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { getDatabase } from '../../data/database/database';
 
 interface Props {
@@ -22,7 +22,6 @@ const RegisterScreen = ({ onBack }: Props) => {
   const [confirmPassword, setConfirmPassword] = useState('');
 
   const handleRegister = () => {
-    // 1. Validaciones básicas
     if (!username || !email || !password || !confirmPassword) {
       Alert.alert('Error', 'Todos los campos son obligatorios');
       return;
@@ -33,11 +32,9 @@ const RegisterScreen = ({ onBack }: Props) => {
       return;
     }
 
-    // 2. Conexión a SQLite
     const db = getDatabase();
 
     try {
-      // Intentamos insertar el nuevo usuario
       db.runSync(
         'INSERT INTO Users (username, email, password) VALUES (?, ?, ?)',
         [username, email, password]
@@ -46,17 +43,17 @@ const RegisterScreen = ({ onBack }: Props) => {
       Alert.alert(
         '¡Éxito!', 
         'Cuenta creada correctamente. Ahora puedes iniciar sesión.',
-        [{ text: 'OK', onPress: onBack }] // Al dar OK, regresa al Login
+        [{ text: 'OK', onPress: onBack }]
       );
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'El correo electrónico ya está registrado o hubo un error en la base de datos.');
+      Alert.alert('Error', 'El correo electrónico ya está registrado.');
     }
   };
 
   return (
-    <SafeAreaView style={styles.mainContainer}>
-      {/* Header con flecha de volver */}
+    <SafeAreaView style={styles.mainContainer} edges={['bottom']}>
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
           <Text style={styles.backIcon}>‹</Text>
@@ -65,14 +62,13 @@ const RegisterScreen = ({ onBack }: Props) => {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.contentContainer}>
+      <ScrollView contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
         <Text style={styles.welcomeTitle}>Únete a EcoSpend</Text>
         <Text style={styles.welcomeSubtitle}>
           Comienza a gestionar tus finanzas de forma inteligente y ecológica.
         </Text>
 
         <View style={styles.form}>
-          {/* Campo Usuario */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Nombre de usuario</Text>
             <TextInput 
@@ -84,7 +80,6 @@ const RegisterScreen = ({ onBack }: Props) => {
             />
           </View>
 
-          {/* Campo Correo */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Correo electrónico</Text>
             <TextInput 
@@ -98,7 +93,6 @@ const RegisterScreen = ({ onBack }: Props) => {
             />
           </View>
 
-          {/* Campo Contraseña */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Contraseña</Text>
             <TextInput 
@@ -111,7 +105,6 @@ const RegisterScreen = ({ onBack }: Props) => {
             />
           </View>
 
-          {/* Confirmar Contraseña */}
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Confirmar contraseña</Text>
             <TextInput 
@@ -125,12 +118,10 @@ const RegisterScreen = ({ onBack }: Props) => {
           </View>
         </View>
 
-        {/* Botón de Registro */}
         <TouchableOpacity style={styles.button} onPress={handleRegister}>
           <Text style={styles.buttonText}>Registrarse</Text>
         </TouchableOpacity>
 
-        {/* Link para volver al login */}
         <View style={styles.loginLinkContainer}>
           <Text style={styles.alreadyAccountText}>¿Ya tienes una cuenta? </Text>
           <TouchableOpacity onPress={onBack}>
@@ -170,7 +161,7 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingHorizontal: 25,
-    paddingTop: 20,
+    paddingTop: 10,
     paddingBottom: 40,
   },
   welcomeTitle: {
@@ -181,10 +172,10 @@ const styles = StyleSheet.create({
   welcomeSubtitle: {
     fontSize: 16,
     color: '#808080',
-    marginBottom: 30,
+    marginBottom: 25,
   },
   form: {
-    marginBottom: 20,
+    marginBottom: 10,
   },
   inputGroup: {
     marginBottom: 20,
@@ -201,6 +192,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     paddingHorizontal: 20,
     fontSize: 16,
+    color: '#000',
   },
   button: {
     backgroundColor: '#6200EE',
