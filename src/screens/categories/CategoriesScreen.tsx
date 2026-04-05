@@ -6,7 +6,7 @@ import {
   FlatList, 
   TouchableOpacity 
 } from 'react-native';
-
+// Importación moderna
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface Props {

@@ -30,7 +30,9 @@ CREATE TABLE IF NOT EXISTS Categories (
     name TEXT NOT NULL,
     type TEXT CHECK(type IN ('Ingreso', 'Gasto')) NOT NULL,
     icon TEXT,
-    color TEXT
+    color TEXT,
+    user_id INTEGER NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
 );
 
 -- 4. TABLA DE TRANSACCIONES
