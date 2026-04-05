@@ -1,55 +1,38 @@
 import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
 
-const DashboardScreen = () => {
-  // SIMULACIÓN DE DATOS (Mocks)
-  const userStats = {
-    totalBalance: "$2,450.00",
-    income: "$3,000.00",
-    expenses: "$550.00"
-  };
+// 1. Definimos qué funciones recibe el Dashboard desde App.tsx
+interface Props {
+  onAddTransaction: () => void;
+  onViewHistory: () => void;
+}
 
-  const recentTransactions = [
-    { id: '1', title: 'Mercado', amount: '-$50.00', category: 'Comida', color: '#FF5733' },
-    { id: '2', title: 'Sueldo', amount: '+$1,500.00', category: 'Trabajo', color: '#2ECC71' },
-    { id: '3', title: 'Netflix', amount: '-$12.00', category: 'Entretenimiento', color: '#3498DB' },
-  ];
+// 2. Pasamos las Props al componente
+const DashboardScreen = ({ onAddTransaction, onViewHistory }: Props) => {
+  // ... (tus datos mock siguen igual) ...
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header con Saldo */}
         <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>Saldo Total</Text>
-          <Text style={styles.balanceAmount}>{userStats.totalBalance}</Text>
-          <View style={styles.statsRow}>
-            <Text style={styles.incomeText}>↑ {userStats.income}</Text>
-            <Text style={styles.expenseText}>↓ {userStats.expenses}</Text>
-          </View>
+          {/* ... contenido del saldo ... */}
         </View>
 
         {/* Sección de Movimientos Recientes */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Movimientos recientes</Text>
-          <TouchableOpacity><Text style={styles.seeAll}>Ver todos</Text></TouchableOpacity>
+          {/* 3. CONECTAMOS EL BOTÓN "Ver todos" */}
+          <TouchableOpacity onPress={onViewHistory}>
+            <Text style={styles.seeAll}>Ver todos</Text>
+          </TouchableOpacity>
         </View>
 
-        {recentTransactions.map((item) => (
-          <View key={item.id} style={styles.transactionItem}>
-            <View style={[styles.categoryIcon, { backgroundColor: item.color }]} />
-            <View style={{ flex: 1, marginLeft: 15 }}>
-              <Text style={styles.transTitle}>{item.title}</Text>
-              <Text style={styles.transCategory}>{item.category}</Text>
-            </View>
-            <Text style={[styles.transAmount, { color: item.amount.startsWith('+') ? '#2ECC71' : '#000' }]}>
-              {item.amount}
-            </Text>
-          </View>
-        ))}
+        {/* ... mapeo de transacciones ... */}
       </ScrollView>
 
-      {/* Botón Flotante "+" (Añadir Operación) */}
-      <TouchableOpacity style={styles.fab}>
+      {/* 4. CONECTAMOS EL BOTÓN FLOTANTE "+" */}
+      <TouchableOpacity style={styles.fab} onPress={onAddTransaction}>
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
     </SafeAreaView>

@@ -15,13 +15,13 @@ interface Props {
 const HistoryScreen = ({ onBack }: Props) => {
   // DATOS FALSOS (Mocks) para probar la visual
   const transactions = [
-    { id: '1', date: 'Hoy', title: 'Mercado Mensual', amount: -150.00, category: 'Comida', icon: '🛒' },
-    { id: '2', date: 'Hoy', title: 'Pago Freelance', amount: 450.00, category: 'Trabajo', icon: '💰' },
-    { id: '3', date: 'Ayer', title: 'Gasolina', amount: -30.00, category: 'Transporte', icon: '🚗' },
-    { id: '4', date: 'Ayer', title: 'Suscripción Netflix', amount: -12.99, category: 'Entretenimiento', icon: '🎬' },
-    { id: '5', date: '02 Abr', title: 'Cena Cumpleaños', amount: -85.50, category: 'Salidas', icon: '🍕' },
-    { id: '6', date: '01 Abr', title: 'Venta de Ropa', amount: 60.00, category: 'Otros', icon: '👕' },
-    { id: '7', date: '01 Abr', title: 'Alquiler Apdo', amount: -600.00, category: 'Vivienda', icon: '🏠' },
+    { id: '1', date: 'Hoy', title: 'Mercado Mensual', amount: -150.00, category: 'Comida', icon: '?' },
+    { id: '2', date: 'Hoy', title: 'Pago Freelance', amount: 450.00, category: 'Trabajo', icon: '?' },
+    { id: '3', date: 'Ayer', title: 'Gasolina', amount: -30.00, category: 'Transporte', icon: '?' },
+    { id: '4', date: 'Ayer', title: 'Suscripción Netflix', amount: -12.99, category: 'Entretenimiento', icon: '?' },
+    { id: '5', date: '02 Abr', title: 'Cena Cumpleaños', amount: -85.50, category: 'Salidas', icon: '?' },
+    { id: '6', date: '01 Abr', title: 'Venta de Ropa', amount: 60.00, category: 'Otros', icon: '?' },
+    { id: '7', date: '01 Abr', title: 'Alquiler Apdo', amount: -600.00, category: 'Vivienda', icon: '?' },
   ];
 
   const renderItem = ({ item }: { item: typeof transactions[0] }) => (
