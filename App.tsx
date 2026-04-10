@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { StatusBar, StyleSheet } from 'react-native';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'; // <-- Importación moderna
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { initDatabase } from './src/data/database/database';
 
-// Importaciones de pantallas
+
 import WelcomeScreen from './src/screens/WelcomeScreen';
 import LoginScreen from './src/screens/auth/LoginScreen';
 import RegisterScreen from './src/screens/auth/RegisterScreen';
@@ -24,7 +24,7 @@ type ScreenName =
   | 'reports';
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<ScreenName>('reports');
+  const [currentScreen, setCurrentScreen] = useState<ScreenName>('dashboard');
 
   useEffect(() => {
     initDatabase();
