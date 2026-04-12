@@ -1,33 +1,66 @@
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  TouchableOpacity 
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
-// Importación moderna
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CategoryService, Category } from '../../services/categoryService';
+
+// Placeholder hasta que se implemente autenticación
+const USER_ID = 1;
+
+// Mapa de color de fondo → color de texto
+const TEXT_COLOR_MAP: Record<string, string> = {
+  '#FFEBEE': '#D32F2F',
+  '#E3F2FD': '#1976D2',
+  '#E8F5E9': '#388E3C',
+  '#F3E5F5': '#7B1FA2',
+  '#FFF3E0': '#F57C00',
+  '#EFEBE9': '#5D4037',
+  '#FCE4EC': '#C2185B',
+  '#E0F7FA': '#00838F',
+  '#F9FBE7': '#827717',
+  '#EDE7F6': '#4527A0',
+};
+
+const getTextColor = (bg: string) => TEXT_COLOR_MAP[bg] ?? '#333333';
 
 interface Props {
   onAdd: () => void;
   onBack: () => void;
+  onEdit: (id: number) => void;
 }
 
-const CategoriesScreen = ({ onAdd, onBack }: Props) => {
-  const categories = [
-    { id: '1', name: 'Comida', icon: '?', color: '#FFEBEE', textColor: '#D32F2F' },
-    { id: '2', name: 'Transporte', icon: '?', color: '#E3F2FD', textColor: '#1976D2' },
-    { id: '3', name: 'Salud', icon: '?', color: '#E8F5E9', textColor: '#388E3C' },
-    { id: '4', name: 'Ocio', icon: '?', color: '#F3E5F5', textColor: '#7B1FA2' },
-    { id: '5', name: 'Educación', icon: '?', color: '#FFF3E0', textColor: '#F57C00' },
-    { id: '6', name: 'Hogar', icon: '?', color: '#EFEBE9', textColor: '#5D4037' },
-  ];
+const CategoriesScreen = ({ onAdd, onBack, onEdit }: Props) => {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const renderItem = ({ item }: { item: typeof categories[0] }) => (
-    <TouchableOpacity style={[styles.categoryCard, { backgroundColor: item.color }]}>
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      const data = await CategoryService.getCategories(USER_ID);
+      setCategories(data);
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  const renderItem = ({ item }: { item: Category }) => (
+    <TouchableOpacity
+      style={[styles.categoryCard, { backgroundColor: item.color }]}
+      onPress={() => onEdit(item.id)}
+    >
       <Text style={styles.categoryIcon}>{item.icon}</Text>
-      <Text style={[styles.categoryName, { color: item.textColor }]}>{item.name}</Text>
+      <Text style={[styles.categoryName, { color: getTextColor(item.color) }]}>
+        {item.name}
+      </Text>
+      <Text style={[styles.categoryType, { color: getTextColor(item.color) }]}>
+        {item.type}
+      </Text>
     </TouchableOpacity>
   );
 
@@ -43,17 +76,34 @@ const CategoriesScreen = ({ onAdd, onBack }: Props) => {
         </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={categories}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        numColumns={2}
-        columnWrapperStyle={styles.row}
-        contentContainerStyle={styles.listContent}
-        ListHeaderComponent={
-          <Text style={styles.subtitle}>Gestiona tus etiquetas de gastos e ingresos</Text>
-        }
-      />
+      {loading ? (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color="#6200EE" />
+        </View>
+      ) : (
+        <FlatList
+          data={categories}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={renderItem}
+          numColumns={2}
+          columnWrapperStyle={styles.row}
+          contentContainerStyle={styles.listContent}
+          ListHeaderComponent={
+            <Text style={styles.subtitle}>
+              Toca una categoría para editarla
+            </Text>
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyIcon}>🗂️</Text>
+              <Text style={styles.emptyTitle}>Sin categorías</Text>
+              <Text style={styles.emptySubtitle}>
+                Crea tu primera categoría para organizar tus transacciones
+              </Text>
+            </View>
+          }
+        />
+      )}
 
       <View style={styles.footer}>
         <TouchableOpacity style={styles.mainAddButton} onPress={onAdd}>
@@ -66,20 +116,21 @@ const CategoriesScreen = ({ onAdd, onBack }: Props) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
-  header: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    height: 60, 
-    paddingHorizontal: 15 
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    height: 60,
+    paddingHorizontal: 15,
   },
   backButton: { width: 40, height: 40, justifyContent: 'center' },
   backIcon: { fontSize: 35, color: '#000', fontWeight: '300' },
   headerTitle: { fontSize: 18, fontWeight: 'bold' },
   headerAdd: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-end' },
   headerAddText: { fontSize: 28, color: '#6200EE' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   subtitle: { fontSize: 14, color: '#808080', marginBottom: 20 },
-  listContent: { padding: 20 },
+  listContent: { padding: 20, flexGrow: 1 },
   row: { justifyContent: 'space-between' },
   categoryCard: {
     width: '47%',
@@ -88,9 +139,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 15,
+    gap: 4,
   },
-  categoryIcon: { fontSize: 32, marginBottom: 8 },
-  categoryName: { fontSize: 14, fontWeight: 'bold' },
+  categoryIcon: { fontSize: 32 },
+  categoryName: { fontSize: 13, fontWeight: 'bold' },
+  categoryType: { fontSize: 11, opacity: 0.8 },
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 60,
+    gap: 10,
+  },
+  emptyIcon: { fontSize: 48 },
+  emptyTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+  emptySubtitle: { fontSize: 14, color: '#808080', textAlign: 'center', paddingHorizontal: 20 },
   footer: { padding: 20 },
   mainAddButton: {
     backgroundColor: '#6200EE',

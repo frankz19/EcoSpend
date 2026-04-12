@@ -24,7 +24,8 @@ type ScreenName =
   | 'reports';
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<ScreenName>('reports');
+  const [currentScreen, setCurrentScreen] = useState<ScreenName>('categories');
+  const [editingCategoryId, setEditingCategoryId] = useState<number | undefined>(undefined);
 
   useEffect(() => {
     initDatabase();
@@ -60,9 +61,20 @@ export default function App() {
       case 'add_account':
         return <AddAccountScreen onBack={() => setCurrentScreen('accounts')} />;
       case 'categories':
-        return <CategoriesScreen onAdd={() => setCurrentScreen('add_category')} onBack={() => setCurrentScreen('dashboard')} />;
+        return (
+          <CategoriesScreen
+            onAdd={() => { setEditingCategoryId(undefined); setCurrentScreen('add_category'); }}
+            onBack={() => setCurrentScreen('dashboard')}
+            onEdit={(id) => { setEditingCategoryId(id); setCurrentScreen('add_category'); }}
+          />
+        );
       case 'add_category':
-        return <AddCategoryScreen onBack={() => setCurrentScreen('categories')} />;
+        return (
+          <AddCategoryScreen
+            onBack={() => { setEditingCategoryId(undefined); setCurrentScreen('categories'); }}
+            categoryId={editingCategoryId}
+          />
+        );
       case 'reports':
         return <ReportsScreen onBack={() => setCurrentScreen('dashboard')} />;
       default:
