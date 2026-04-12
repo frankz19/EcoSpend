@@ -14,15 +14,18 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { TransactionService } from '../../services/transactionService';
+import { TransactionService, TransactionWithDetails} from '../../services/transactionService';
 import { AccountService, Account } from '../../services/accountService';
 import { CategoryService, Category } from '../../services/categoryService';
+
+
 
 // Placeholder hasta que se implemente autenticación
 const USER_ID = 1;
 
 interface Props {
   onBack: () => void;
+  transactionToEdit?:TransactionWithDetails | null;
 }
 
 const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -36,7 +39,9 @@ const formatDate = (d: Date): string => {
   return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 };
 
-const TransactionFormScreen = ({ onBack }: Props) => {
+const TransactionFormScreen = ({ onBack, transactionToEdit }: Props) => {
+  const isEditing = !!transactionToEdit;
+
   const [transactionType, setTransactionType] = useState<'Gasto' | 'Ingreso'>('Gasto');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -60,11 +65,25 @@ const TransactionFormScreen = ({ onBack }: Props) => {
       ]);
       setAccounts(accs);
       setAllCategories(cats);
-      if (accs.length > 0) setSelectedAccount(accs[0]);
+
+      // lógica de edición, si se recibe una tranacción se llena el formulario
+      if (transactionToEdit) {
+        setTransactionType(transactionToEdit.category_type);
+        setAmount(transactionToEdit.amount.toString());
+        setDescription(transactionToEdit.description || '');
+        setDate(new Date(transactionToEdit.date));
+        
+        // Buscamos el objeto cuenta y categoría correspondiente
+        const currentAcc = accs.find(a => a.id === transactionToEdit.account_id);
+        const currentCat = cats.find(c => c.id === transactionToEdit.category_id);
+        
+        if (currentAcc) setSelectedAccount(currentAcc);
+        if (currentCat) setSelectedCategory(currentCat);
+      } else if (accs.length > 0) setSelectedAccount(accs[0]);
       setLoading(false);
     };
     load();
-  }, []);
+  }, [transactionToEdit]);
 
   // Resetear categoría al cambiar el tipo
   const handleTypeChange = (newType: 'Gasto' | 'Ingreso') => {
@@ -104,13 +123,28 @@ const TransactionFormScreen = ({ onBack }: Props) => {
 
     setSaving(true);
 
-    const result = await TransactionService.createTransaction(
-      selectedAccount.id,
-      selectedCategory.id,
-      parsedAmount,
-      description.trim(),
-      date.toISOString()
-    );
+    let result;
+
+    if(isEditing && transactionToEdit)
+    {
+      result = await TransactionService.updateTransaction(transactionToEdit.id, {
+        amount: parsedAmount,
+        category_id: selectedCategory!.id,
+        description: description.trim(),
+        date: date.toISOString()
+      });
+    } else 
+    {
+      result = await TransactionService.createTransaction(
+        selectedAccount.id,
+        selectedCategory.id,
+        parsedAmount,
+        description.trim(),
+        date.toISOString()
+      );
+    }
+
+    
 
     setSaving(false);
 
@@ -141,7 +175,7 @@ const TransactionFormScreen = ({ onBack }: Props) => {
           <TouchableOpacity style={styles.backButton} onPress={onBack}>
             <Text style={styles.backIcon}>‹</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Nueva Operación</Text>
+          <Text style={styles.headerTitle}>{isEditing ? 'Editar Operación' : 'Nueva Operación'}</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.centered}>
@@ -162,7 +196,7 @@ const TransactionFormScreen = ({ onBack }: Props) => {
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
           <Text style={styles.backIcon}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Nueva Operación</Text>
+        <Text style={styles.headerTitle}>{isEditing ? 'Editar Operación' : 'Nueva Operación'}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -304,7 +338,7 @@ const TransactionFormScreen = ({ onBack }: Props) => {
             {saving ? (
               <ActivityIndicator color="#FFF" />
             ) : (
-              <Text style={styles.saveButtonText}>Guardar Registro</Text>
+              <Text style={styles.saveButtonText}>{isEditing ? 'Guardar Cambios' : 'Registrar Operación'}</Text>
             )}
           </TouchableOpacity>
 
