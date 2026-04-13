@@ -26,7 +26,7 @@ export interface DashboardSummary {
 
 export const TransactionService = {
 
-    // Crear transacción y actualizar saldo de la cuenta
+
     createTransaction: async (
         accountId: number,
         categoryId: number,
@@ -44,7 +44,7 @@ export const TransactionService = {
                 );
                 if (!cat) throw new Error('Categoría no encontrada');
 
-                // Verificar saldo suficiente para gastos
+
                 if (cat.type === 'Gasto') {
                     const account = await db.getFirstAsync<{ current_balance: number }>(
                         'SELECT current_balance FROM Accounts WHERE id = ?', [accountId]
@@ -76,7 +76,7 @@ export const TransactionService = {
         }
     },
 
-    // Obtener transacciones con detalle de categoría y cuenta
+
     getTransactions: async (userId: number, limit = 100): Promise<TransactionWithDetails[]> => {
         try {
             return await db.getAllAsync<TransactionWithDetails>(
@@ -101,7 +101,7 @@ export const TransactionService = {
         }
     },
 
-    // Resumen para el dashboard (saldo total + ingresos/gastos del mes)
+
     getDashboardSummary: async (userId: number): Promise<DashboardSummary> => {
         try {
             const balanceRow = await db.getFirstAsync<{ total: number }>(
@@ -140,7 +140,7 @@ export const TransactionService = {
         }
     },
 
-    // Eliminar transacción y revertir saldo
+
     deleteTransaction: async (transactionId: number) => {
         try {
             await db.withTransactionAsync(async () => {
@@ -171,7 +171,7 @@ export const TransactionService = {
         }
     },
 
-    // Editar transacción y ajustar saldo
+
     updateTransaction: async (id: number, newData: { amount: number, category_id: number, description: string, date: string }) => {
         const validation = Validators.validateTransactionForm(newData.amount, new Date(newData.date), newData.description);
         if (!validation.isValid) return { success: false, error: validation.errorMessage };
@@ -214,7 +214,7 @@ export const TransactionService = {
         }
     },
     
-    // Filtros de información
+
     getFilteredTransactions: async (
         userId: number, 
         filters: {

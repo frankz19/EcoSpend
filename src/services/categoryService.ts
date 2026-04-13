@@ -3,7 +3,7 @@ import { Validators } from "../utils/validators";
 
 const db = getDatabase();
 
-// 1. Definimos la interfaz para que TypeScript no se queje
+
 export interface Category {
     id: number;
     name: string;
@@ -14,7 +14,7 @@ export interface Category {
 }
 
 export const CategoryService = {
-    // 2. EL FIX CRÍTICO: Obtener las categorías del usuario
+
     getCategories: async (userId: number): Promise<Category[]> => {
         try {
             return await db.getAllAsync<Category>(
@@ -27,7 +27,7 @@ export const CategoryService = {
         }
     },
 
-    // 3. Crear nueva categoría (faltaba para que la pantalla funcione)
+
     createCategory: async (userId: number, name: string, type: 'Ingreso' | 'Gasto', icon: string, color: string) => {
         const cleanName = Validators.sanitizeText(name);
         
@@ -55,7 +55,7 @@ export const CategoryService = {
         }
     },
 
-    // 4. Editar categoría (Lo que ya tenían los chicos, pero ajustado al userId)
+
     updateCategory: async (id: number, userId: number, name: string, icon: string, color: string) => {
         const cleanName = Validators.sanitizeText(name);
 
@@ -84,10 +84,10 @@ export const CategoryService = {
         }
     },
 
-    // 5. Eliminar categoría (Lo que ya tenían los chicos)
+
     deleteCategory: async (id: number) => {
         try {
-            // Verifica si hay transacciones asociadas a esa categoría
+
             const usage = await db.getFirstAsync<{ count: number }>(
                 'SELECT COUNT(*) as count FROM Transactions WHERE category_id = ?',
                 [id]
@@ -100,7 +100,7 @@ export const CategoryService = {
                 };
             }
 
-            // Eliminar si está huérfana
+
             await db.runAsync('DELETE FROM Categories WHERE id = ?', [id]);
             return { success: true };
         } catch (error) {
