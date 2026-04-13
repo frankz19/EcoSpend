@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { StatusBar, StyleSheet } from 'react-native';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'; // <-- Importación moderna
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { initDatabase } from './src/data/database/database';
 
-// Importaciones de pantallas
 import WelcomeScreen from './src/screens/WelcomeScreen';
 import LoginScreen from './src/screens/auth/LoginScreen';
 import RegisterScreen from './src/screens/auth/RegisterScreen';
@@ -24,13 +23,34 @@ type ScreenName =
   | 'reports';
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<ScreenName>('reports');
+  const [currentScreen, setCurrentScreen] = useState<ScreenName>('welcome');
+  const [userId, setUserId] = useState<number | null>(null);
 
   useEffect(() => {
     initDatabase();
   }, []);
 
+  const handleLoginSuccess = (id: number) => {
+    setUserId(id);
+    setCurrentScreen('dashboard');
+  };
+
+  const handleLogout = () => {
+    setUserId(null);
+    setCurrentScreen('login');
+  };
+
   const renderScreen = () => {
+    if (!userId && !['welcome', 'login', 'register'].includes(currentScreen)) {
+      return (
+        <LoginScreen 
+          onNavigateToRegister={() => setCurrentScreen('register')} 
+          onBack={() => setCurrentScreen('welcome')}
+          onLoginSuccess={handleLoginSuccess}
+        />
+      );
+    }
+
     switch (currentScreen) {
       case 'welcome':
         return <WelcomeScreen onStart={() => setCurrentScreen('login')} />;
@@ -39,7 +59,7 @@ export default function App() {
           <LoginScreen 
             onNavigateToRegister={() => setCurrentScreen('register')} 
             onBack={() => setCurrentScreen('welcome')}
-            onLoginSuccess={() => setCurrentScreen('dashboard')}
+            onLoginSuccess={handleLoginSuccess}
           />
         );
       case 'register':
@@ -47,24 +67,40 @@ export default function App() {
       case 'dashboard':
         return (
           <DashboardScreen 
+            userId={userId!}
             onAddTransaction={() => setCurrentScreen('transaction_form')}
             onViewHistory={() => setCurrentScreen('history')}
+            onViewAccounts={() => setCurrentScreen('accounts')}
+            onViewCategories={() => setCurrentScreen('categories')}
+            onLogout={handleLogout}
           />
         );
       case 'transaction_form':
-        return <TransactionFormScreen onBack={() => setCurrentScreen('dashboard')} />;
+        return <TransactionFormScreen userId={userId!} onBack={() => setCurrentScreen('dashboard')} />;
       case 'history':
-        return <HistoryScreen onBack={() => setCurrentScreen('dashboard')} />;
+        return <HistoryScreen userId={userId!} onBack={() => setCurrentScreen('dashboard')} />;
       case 'accounts':
-        return <AccountsScreen onAdd={() => setCurrentScreen('add_account')} onBack={() => setCurrentScreen('dashboard')} />;
+        return (
+          <AccountsScreen 
+            userId={userId!} 
+            onAdd={() => setCurrentScreen('add_account')} 
+            onBack={() => setCurrentScreen('dashboard')} 
+          />
+        );
       case 'add_account':
-        return <AddAccountScreen onBack={() => setCurrentScreen('accounts')} />;
+        return <AddAccountScreen userId={userId!} onBack={() => setCurrentScreen('accounts')} />;
       case 'categories':
-        return <CategoriesScreen onAdd={() => setCurrentScreen('add_category')} onBack={() => setCurrentScreen('dashboard')} />;
+        return (
+          <CategoriesScreen 
+            userId={userId!} 
+            onAdd={() => setCurrentScreen('add_category')} 
+            onBack={() => setCurrentScreen('dashboard')} 
+          />
+        );
       case 'add_category':
-        return <AddCategoryScreen onBack={() => setCurrentScreen('categories')} />;
+        return <AddCategoryScreen userId={userId!} onBack={() => setCurrentScreen('categories')} />;
       case 'reports':
-        return <ReportsScreen onBack={() => setCurrentScreen('dashboard')} />;
+        return <ReportsScreen userId={userId!} onBack={() => setCurrentScreen('dashboard')} />;
       default:
         return <WelcomeScreen onStart={() => setCurrentScreen('login')} />;
     }

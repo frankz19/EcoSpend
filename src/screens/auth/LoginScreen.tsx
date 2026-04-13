@@ -1,51 +1,32 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Alert 
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getDatabase } from '../../data/database/database';
-
-interface UserRow {
-  id: number;
-  username: string;
-  email: string;
-}
+import { AuthService } from '../../services/authService';
 
 interface Props {
   onNavigateToRegister: () => void;
   onBack: () => void;
-  onLoginSuccess?: () => void;
+  onLoginSuccess?: (userId: number) => void;
 }
 
 const LoginScreen = ({ onNavigateToRegister, onBack, onLoginSuccess }: Props) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
-    const db = getDatabase();
+  const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Por favor, completa todos los campos');
       return;
     }
-    try {
-      const user = db.getFirstSync<UserRow>(
-        'SELECT id, username, email FROM Users WHERE email = ? AND password = ?',
-        [email, password]
-      );
-      if (user) {
-        Alert.alert('¡Bienvenido!', `Hola de nuevo, ${user.username}`, [
-          { text: 'Continuar', onPress: () => onLoginSuccess?.() }
-        ]);
-      } else {
-        Alert.alert('Error', 'Correo o contraseña incorrectos');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Problema al conectar con la base de datos');
+
+    const result = await AuthService.login(email, password);
+
+    if (result.success && result.user) {
+      Alert.alert('¡Bienvenido!', `Hola de nuevo, ${result.user.username}`, [
+        { text: 'Continuar', onPress: () => onLoginSuccess?.(result.user.id) }
+      ]);
+    } else {
+      Alert.alert('Error', result.error);
     }
   };
 

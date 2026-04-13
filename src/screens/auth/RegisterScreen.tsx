@@ -1,15 +1,7 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Alert, 
-  ScrollView 
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getDatabase } from '../../data/database/database';
+import { AuthService } from '../../services/authService';
 
 interface Props {
   onBack: () => void;
@@ -21,7 +13,7 @@ const RegisterScreen = ({ onBack }: Props) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!username || !email || !password || !confirmPassword) {
       Alert.alert('Error', 'Todos los campos son obligatorios');
       return;
@@ -32,28 +24,17 @@ const RegisterScreen = ({ onBack }: Props) => {
       return;
     }
 
-    const db = getDatabase();
+    const result = await AuthService.register(username, email, password);
 
-    try {
-      db.runSync(
-        'INSERT INTO Users (username, email, password) VALUES (?, ?, ?)',
-        [username, email, password]
-      );
-      
-      Alert.alert(
-        '¡Éxito!', 
-        'Cuenta creada correctamente. Ahora puedes iniciar sesión.',
-        [{ text: 'OK', onPress: onBack }]
-      );
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'El correo electrónico ya está registrado.');
+    if (result.success) {
+      Alert.alert('¡Éxito!', 'Cuenta creada correctamente.', [{ text: 'OK', onPress: onBack }]);
+    } else {
+      Alert.alert('Error', result.error);
     }
   };
 
   return (
     <SafeAreaView style={styles.mainContainer} edges={['bottom']}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
           <Text style={styles.backIcon}>‹</Text>
@@ -134,92 +115,23 @@ const RegisterScreen = ({ onBack }: Props) => {
 };
 
 const styles = StyleSheet.create({
-  mainContainer: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    height: 60,
-    paddingHorizontal: 10,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backIcon: {
-    fontSize: 35,
-    color: '#000000',
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  contentContainer: {
-    paddingHorizontal: 25,
-    paddingTop: 10,
-    paddingBottom: 40,
-  },
-  welcomeTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  welcomeSubtitle: {
-    fontSize: 16,
-    color: '#808080',
-    marginBottom: 25,
-  },
-  form: {
-    marginBottom: 10,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 8,
-  },
-  input: {
-    height: 55,
-    borderColor: '#C0C0C0',
-    borderWidth: 1,
-    borderRadius: 25,
-    paddingHorizontal: 20,
-    fontSize: 16,
-    color: '#000',
-  },
-  button: {
-    backgroundColor: '#6200EE',
-    height: 55,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
-    marginBottom: 20,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  loginLinkContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  alreadyAccountText: {
-    fontSize: 15,
-  },
-  loginLink: {
-    fontSize: 15,
-    color: '#6200EE',
-    fontWeight: 'bold',
-  }
+  mainContainer: { flex: 1, backgroundColor: '#FFFFFF' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 60, paddingHorizontal: 10 },
+  backButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  backIcon: { fontSize: 35, color: '#000000' },
+  headerTitle: { fontSize: 16, fontWeight: '600' },
+  contentContainer: { paddingHorizontal: 25, paddingTop: 10, paddingBottom: 40 },
+  welcomeTitle: { fontSize: 28, fontWeight: 'bold', marginBottom: 10 },
+  welcomeSubtitle: { fontSize: 16, color: '#808080', marginBottom: 25 },
+  form: { marginBottom: 10 },
+  inputGroup: { marginBottom: 20 },
+  inputLabel: { fontSize: 16, fontWeight: '500', marginBottom: 8 },
+  input: { height: 55, borderColor: '#C0C0C0', borderWidth: 1, borderRadius: 25, paddingHorizontal: 20, fontSize: 16, color: '#000' },
+  button: { backgroundColor: '#6200EE', height: 55, borderRadius: 25, alignItems: 'center', justifyContent: 'center', marginTop: 10, marginBottom: 20 },
+  buttonText: { color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' },
+  loginLinkContainer: { flexDirection: 'row', justifyContent: 'center' },
+  alreadyAccountText: { fontSize: 15 },
+  loginLink: { fontSize: 15, color: '#6200EE', fontWeight: 'bold' }
 });
 
 export default RegisterScreen;

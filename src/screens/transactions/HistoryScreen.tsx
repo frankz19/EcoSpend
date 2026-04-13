@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { TransactionService, TransactionWithDetails } from '../../services/transactionService';
 
 interface Props {
+  userId: number;
   onBack: () => void;
   onEdit: (transaction: TransactionWithDetails) => void;
 }
@@ -23,23 +24,18 @@ interface TransactionSection {
   data: TransactionWithDetails[];
 }
 
-// PROVICIONAL
-const USER_ID = 1;
-
 const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
-
-const HistoryScreen = ({ onBack, onEdit }: Props) => {
+const HistoryScreen = ({ userId, onBack, onEdit }: Props) => {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<'Ingreso' | 'Gasto'>('Gasto');
   const [sections, setSections] = useState<TransactionSection[]>([]);
   const [loading, setLoading] = useState(true);
 
-
   const loadTransactions = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await TransactionService.getFilteredTransactions(USER_ID, {
+      const data = await TransactionService.getFilteredTransactions(userId, {
         search: search,
         type: typeFilter
       });
@@ -47,11 +43,11 @@ const HistoryScreen = ({ onBack, onEdit }: Props) => {
       const grouped = groupTransactionsByDate(data);
       setSections(grouped);
     } catch (error) {
-      console.error("Error cargando historial:", error);
+      console.error(error);
     } finally {
       setLoading(false);
     }
-  }, [search, typeFilter]);
+  }, [userId, search, typeFilter]);
 
   useEffect(() => {
     loadTransactions();
@@ -84,7 +80,7 @@ const HistoryScreen = ({ onBack, onEdit }: Props) => {
   };
 
   const handleDelete = (id: number) => {
-    Alert.alert("Eliminar", "¿Estás seguro de borrar este movimiento? El saldo de la cuenta se ajustará automáticamente.", [
+    Alert.alert("Eliminar", "¿Estás seguro de borrar este movimiento?", [
       { text: "Cancelar", style: "cancel" },
       { text: "Eliminar", style: "destructive", onPress: async () => {
           const res = await TransactionService.deleteTransaction(id);
@@ -124,7 +120,6 @@ const HistoryScreen = ({ onBack, onEdit }: Props) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backCircle}>
           <Text style={styles.backBtn}>‹</Text>
@@ -133,7 +128,6 @@ const HistoryScreen = ({ onBack, onEdit }: Props) => {
         <View style={{ width: 40 }} />
       </View>
 
-      {/* SEARCH BAR */}
       <View style={styles.searchContainer}>
         <View style={styles.searchWrapper}>
           <Text style={styles.searchEmoji}>🔍</Text>
@@ -146,7 +140,6 @@ const HistoryScreen = ({ onBack, onEdit }: Props) => {
         </View>
       </View>
 
-      {/* FILTROS TIPO  */}
       <View style={styles.typeToggle}>
         <TouchableOpacity 
           style={[styles.toggleBtn, typeFilter === 'Ingreso' && styles.toggleActiveIngreso]}
@@ -162,13 +155,11 @@ const HistoryScreen = ({ onBack, onEdit }: Props) => {
         </TouchableOpacity>
       </View>
 
-      {/* CHIPS DE FILTRO */}
       <View style={styles.chipsRow}>
         <TouchableOpacity style={[styles.chip, {backgroundColor: '#E8EAF6'}]}><Text style={styles.chipText}>💳 Cuenta</Text></TouchableOpacity>
         <TouchableOpacity style={[styles.chip, {backgroundColor: '#FFF9C4'}]}><Text style={styles.chipText}>🏷️ Categoría</Text></TouchableOpacity>
       </View>
 
-      {/* LISTA */}
       {loading ? (
         <ActivityIndicator size="large" color="#6200EE" style={{ marginTop: 50 }} />
       ) : (
