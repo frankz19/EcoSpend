@@ -213,4 +213,68 @@ export const TransactionService = {
             return { success: false, error: 'Error al actualizar la transacción' };
         }
     },
+    
+    // Filtros de información
+    getFilteredTransactions: async (
+        userId: number, 
+        filters: {
+            search?: string,
+            type?: 'Ingreso' | 'Gasto',
+            accountId?: number,
+            categoryId?: number,
+            startDate?: string, // Formato ISO 'YYYY-MM-DD'
+            endDate?: string
+        }
+    ): Promise<TransactionWithDetails[]> => {
+        try {
+            let query = `
+                SELECT 
+                    t.id, t.account_id, t.category_id, t.amount, t.description, t.date, t.created_at,
+                    c.name  AS category_name,
+                    c.icon  AS category_icon,
+                    c.color AS category_color,
+                    c.type  AS category_type,
+                    a.name  AS account_name
+                FROM Transactions t
+                JOIN Categories c ON t.category_id = c.id
+                JOIN Accounts   a ON t.account_id  = a.id
+                WHERE a.user_id = ?
+            `;
+            
+            const params: any[] = [userId];
+
+            // Filtro por tipo (Ingreso/Gasto)
+            if (filters.type) {
+                query += ` AND c.type = ?`;
+                params.push(filters.type);
+            }
+
+            // Filtro por Cuenta específica
+            if (filters.accountId) {
+                query += ` AND t.account_id = ?`;
+                params.push(filters.accountId);
+            }
+
+            // Filtro por Categoría específica
+            if (filters.categoryId) {
+                query += ` AND t.category_id = ?`;
+                params.push(filters.categoryId);
+            }
+
+            // Búsqueda por descripción
+            if (filters.search) {
+                query += ` AND (t.description LIKE ? OR c.name LIKE ?)`;
+                params.push(`%${filters.search}%`, `%${filters.search}%`);
+            }
+
+
+            query += ` ORDER BY t.date DESC, t.created_at DESC`;
+
+            return await db.getAllAsync<TransactionWithDetails>(query, params);
+        } catch (error) {
+            console.error('Error en búsqueda avanzada:', error);
+            return [];
+        }
+    },
+    
 };
