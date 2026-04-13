@@ -4,103 +4,49 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthService } from '../../services/authService';
 
 interface Props {
-  onNavigateToRegister: () => void;
+  onGoToRegister: () => void;
   onBack: () => void;
-  onLoginSuccess?: (userId: number) => void;
+  onLogin: (userId: number) => void;
 }
 
-const LoginScreen = ({ onNavigateToRegister, onBack, onLoginSuccess }: Props) => {
+const LoginScreen = ({ onGoToRegister, onBack, onLogin }: Props) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Por favor, completa todos los campos');
-      return;
-    }
-
+    if (!email || !password) return Alert.alert('Error', 'Completa los campos');
     const result = await AuthService.login(email, password);
-
-    if (result.success && result.user) {
-      Alert.alert('¡Bienvenido!', `Hola de nuevo, ${result.user.username}`, [
-        { text: 'Continuar', onPress: () => onLoginSuccess?.(result.user.id) }
-      ]);
-    } else {
-      Alert.alert('Error', result.error);
-    }
+    if (result.success && result.user) onLogin(result.user.id);
+    else Alert.alert('Error', result.error);
   };
 
   return (
-    <SafeAreaView style={styles.mainContainer} edges={['bottom']}> 
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backIcon}>‹</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Inicio de sesión</Text>
+        <TouchableOpacity onPress={onBack}><Text style={styles.backIcon}>‹</Text></TouchableOpacity>
+        <Text style={styles.title}>Login</Text>
         <View style={{ width: 40 }} />
       </View>
-
-      <View style={styles.contentContainer}>
-        <Text style={styles.welcomeTitle}>Bienvenido de nuevo</Text>
-        <Text style={styles.welcomeSubtitle}>Ingresa a tu cuenta para gestionar tus movimientos</Text>
-
-        <View style={styles.form}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Correo</Text>
-            <TextInput 
-              style={styles.input} 
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              placeholder="ejemplo@correo.com"
-            />
-          </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Contraseña</Text>
-            <TextInput 
-              style={styles.input} 
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry 
-              placeholder="••••••••"
-            />
-          </View>
-        </View>
-
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonText}>Acceder</Text>
-        </TouchableOpacity>
-        
-        <View style={styles.registerContainer}>
-          <Text style={styles.noAccountText}>¿No tienes una cuenta? </Text>
-          <TouchableOpacity onPress={onNavigateToRegister}>
-            <Text style={styles.registerLink}>Registrarse</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={styles.content}>
+        <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} autoCapitalize="none" />
+        <TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
+        <TouchableOpacity style={styles.btn} onPress={handleLogin}><Text style={styles.btnText}>Entrar</Text></TouchableOpacity>
+        <TouchableOpacity onPress={onGoToRegister}><Text style={styles.link}>No tienes cuenta? Registrate</Text></TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: '#FFFFFF' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 60, paddingHorizontal: 10 },
-  backButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  backIcon: { fontSize: 35, color: '#000' },
-  headerTitle: { fontSize: 16, fontWeight: '600' },
-  contentContainer: { flex: 1, paddingHorizontal: 25, paddingTop: 40 },
-  welcomeTitle: { fontSize: 28, fontWeight: 'bold', marginBottom: 10 },
-  welcomeSubtitle: { fontSize: 16, color: '#808080', marginBottom: 40 },
-  form: { marginBottom: 15 },
-  inputGroup: { marginBottom: 20 },
-  inputLabel: { fontSize: 16, fontWeight: '500', marginBottom: 8 },
-  input: { height: 55, borderColor: '#C0C0C0', borderWidth: 1, borderRadius: 25, paddingHorizontal: 20 },
-  button: { height: 55, backgroundColor: '#6200EE', borderRadius: 25, alignItems: 'center', justifyContent: 'center', marginBottom: 30 },
-  buttonText: { color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' },
-  registerContainer: { flexDirection: 'row', justifyContent: 'center' },
-  noAccountText: { fontSize: 15 },
-  registerLink: { fontSize: 15, color: '#6200EE', fontWeight: 'bold' }
+  container: { flex: 1, backgroundColor: '#FFF' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 15 },
+  backIcon: { fontSize: 40, color: '#000' },
+  title: { fontSize: 18, fontWeight: 'bold' },
+  content: { padding: 25, gap: 15 },
+  input: { height: 55, borderWidth: 1, borderColor: '#DDD', borderRadius: 25, paddingHorizontal: 20 },
+  btn: { height: 55, backgroundColor: '#6200EE', borderRadius: 25, justifyContent: 'center', alignItems: 'center' },
+  btnText: { color: '#FFF', fontWeight: 'bold' },
+  link: { textAlign: 'center', color: '#6200EE', marginTop: 10 }
 });
 
 export default LoginScreen;
