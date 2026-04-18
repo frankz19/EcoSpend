@@ -11,10 +11,11 @@ interface Props {
   onViewAccounts: () => void;
   onViewCategories: () => void;
   onViewReports: () => void;
+  onViewReminders: () => void;
   onLogout: () => void;
 }
 
-const DashboardScreen = ({ userId, onAddTransaction, onViewHistory, onViewAccounts, onViewCategories, onViewReports, onLogout }: Props) => {
+const DashboardScreen = ({ userId, onAddTransaction, onViewHistory, onViewAccounts, onViewCategories, onViewReports, onViewReminders, onLogout }: Props) => {
   const [totalBalance, setTotalBalance] = useState(0);
   const [recentTransactions, setRecentTransactions] = useState<TransactionWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,15 +54,18 @@ const DashboardScreen = ({ userId, onAddTransaction, onViewHistory, onViewAccoun
             <View style={styles.dot} /><Text style={styles.actionLabel}>Cuentas</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn} onPress={onViewCategories}>
-            <View style={styles.dot} /><Text style={styles.actionLabel}>Categorias</Text>
+            <View style={styles.dot} /><Text style={styles.actionLabel}>Categorías</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn} onPress={onViewReports}>
             <View style={styles.dot} /><Text style={styles.actionLabel}>Reportes</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.actionBtn} onPress={onViewReminders}>
+            <View style={styles.dotAlarma} /><Text style={styles.actionLabel}>Alarmas</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Ultimos Movimientos</Text>
+          <Text style={styles.sectionTitle}>Últimos Movimientos</Text>
           <TouchableOpacity onPress={onViewHistory}>
             <Text style={styles.seeAll}>Ver todo</Text>
           </TouchableOpacity>
@@ -101,10 +105,11 @@ const styles = StyleSheet.create({
   logout: { color: '#FF5252', fontWeight: 'bold' },
   card: { backgroundColor: '#6200EE', padding: 25, borderRadius: 25, marginBottom: 20 },
   balance: { color: '#FFF', fontSize: 32, fontWeight: 'bold' },
-  actions: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 25 },
-  actionBtn: { width: '31%', backgroundColor: '#FFF', padding: 15, borderRadius: 20, alignItems: 'center', elevation: 2 },
+  actions: { flexDirection: 'row', justifyContent: 'space-between', flexWrap: 'wrap', marginBottom: 25, gap: 5 },
+  actionBtn: { width: '23%', backgroundColor: '#FFF', paddingVertical: 15, paddingHorizontal: 5, borderRadius: 15, alignItems: 'center', elevation: 2 },
   dot: { width: 8, height: 8, backgroundColor: '#6200EE', borderRadius: 4, marginBottom: 5 },
-  actionLabel: { fontSize: 11, fontWeight: '600' },
+  dotAlarma: { width: 8, height: 8, backgroundColor: '#FF9800', borderRadius: 4, marginBottom: 5 },
+  actionLabel: { fontSize: 10, fontWeight: '600' },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold' },
   seeAll: { color: '#6200EE', fontWeight: 'bold' },

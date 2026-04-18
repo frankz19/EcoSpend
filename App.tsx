@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { initDatabase } from './src/data/database/database';
+import { NotificationService } from './src/services/notificationService';
 
 import WelcomeScreen from './src/screens/WelcomeScreen';
 import LoginScreen from './src/screens/auth/LoginScreen';
@@ -13,6 +14,8 @@ import AddAccountScreen from './src/screens/accounts/AddAccountScreen';
 import CategoriesScreen from './src/screens/categories/CategoriesScreen';
 import AddCategoryScreen from './src/screens/categories/AddCategoryScreen';
 import ReportsScreen from './src/screens/reports/ReportsScreen';
+import RemindersScreen from './src/screens/reminders/RemindersScreen';
+import AddReminderScreen from './src/screens/reminders/AddReminderScreen';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('welcome');
@@ -21,6 +24,7 @@ export default function App() {
 
   useEffect(() => {
     initDatabase().then(() => setDbReady(true));
+    NotificationService.requestPermissions(); 
   }, []);
 
   if (!dbReady) return null;
@@ -52,6 +56,7 @@ export default function App() {
             onViewAccounts={() => setCurrentScreen('accounts')}
             onViewCategories={() => setCurrentScreen('categories')}
             onViewReports={() => setCurrentScreen('reports')}
+            onViewReminders={() => setCurrentScreen('reminders')}
             onLogout={handleLogout}
           />
         );
@@ -69,6 +74,10 @@ export default function App() {
         return <AddCategoryScreen userId={userId!} onBack={() => setCurrentScreen('categories')} />;
       case 'reports':
         return <ReportsScreen userId={userId!} onBack={() => setCurrentScreen('dashboard')} />;
+      case 'reminders':
+        return <RemindersScreen userId={userId!} onBack={() => setCurrentScreen('dashboard')} onAdd={() => setCurrentScreen('add_reminder')} />;
+      case 'add_reminder':
+        return <AddReminderScreen userId={userId!} onBack={() => setCurrentScreen('reminders')} />;
       default:
         return <WelcomeScreen onStart={() => setCurrentScreen('login')} />;
     }

@@ -48,7 +48,20 @@ CREATE TABLE IF NOT EXISTS Transactions (
     FOREIGN KEY (category_id) REFERENCES Categories(id) ON DELETE RESTRICT
 );
 
--- 5. ÍNDICES DE RENDIMIENTO (Optimización para sus pantallas de Reportes e Historial)
+-- 5. TABLA DE RECORDATORIOS (ALARMAS)
+CREATE TABLE IF NOT EXISTS Reminders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    amount REAL,
+    due_date DATETIME NOT NULL,
+    is_paid INTEGER DEFAULT 0 CHECK(is_paid IN (0, 1)),
+    notification_id TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
+);
+
+-- 6. ÍNDICES DE RENDIMIENTO (Optimización para consultas rápidas)
 -- Optimiza la búsqueda de movimientos por fecha (Pantalla Historial)
 CREATE INDEX IF NOT EXISTS idx_transaction_date ON Transactions(date);
 
@@ -60,4 +73,7 @@ CREATE INDEX IF NOT EXISTS idx_transaction_account ON Transactions(account_id);
 
 -- Optimiza la búsqueda de cuentas por usuario
 CREATE INDEX IF NOT EXISTS idx_account_user ON Accounts(user_id);
+
+-- Optimiza la carga de recordatorios pendientes por usuario
+CREATE INDEX IF NOT EXISTS idx_reminder_user_due ON Reminders(user_id, due_date);
 `;
