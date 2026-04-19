@@ -10,6 +10,12 @@ interface Props {
   onBack: () => void;
 }
 
+interface TransactionResponse {
+  success: boolean;
+  warning?: string;
+  error?: string;
+}
+
 const TransactionFormScreen = ({ userId, onBack }: Props) => {
   const [type, setType] = useState<'Gasto' | 'Ingreso'>('Gasto');
   const [amount, setAmount] = useState('');
@@ -35,19 +41,42 @@ const TransactionFormScreen = ({ userId, onBack }: Props) => {
   }, [userId]);
 
   const handleSave = async () => {
+    // 1. Validaciones básicas de UI
     if (!amount || !selectedAcc || !selectedCat) {
       Alert.alert('Error', 'Completa los campos obligatorios');
       return;
     }
+
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      Alert.alert('Error', 'Introduce un monto válido');
+      return;
+    }
+
+    // 2. Llamada al servicio actualizado
     const res = await TransactionService.createTransaction(
       selectedAcc,
       selectedCat,
-      parseFloat(amount),
+      parsedAmount,
       description,
       new Date().toISOString()
-    );
-    if (res.success) onBack();
-    else Alert.alert('Error', 'No se pudo guardar');
+    ) as TransactionResponse;
+
+    if (res.success) {
+      // 3. Si hay un aviso de presupuesto (warning), lo mostramos antes de salir
+      if (res.warning) {
+        Alert.alert(
+          'Presupuesto Excedido', 
+          res.warning, 
+          [{ text: 'Entendido', onPress: () => onBack() }]
+        );
+      } else {
+        onBack();
+      }
+    } else {
+      // Manejo de errores específicos (como saldo insuficiente) o genéricos
+      Alert.alert('Error', res.error || 'No se pudo guardar la operación');
+    }
   };
 
   const filteredCats = categories.filter(c => c.type === type);

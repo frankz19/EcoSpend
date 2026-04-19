@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS Categories (
     icon TEXT,
     color TEXT,
     user_id INTEGER NOT NULL,
+    limit_amount REAL DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
 );
 
