@@ -10,6 +10,7 @@ export interface Category {
     type: 'Ingreso' | 'Gasto';
     icon: string;
     color: string;
+    limit_amount: number;
     user_id: number;
 }
 
@@ -28,7 +29,7 @@ export const CategoryService = {
     },
 
 
-    createCategory: async (userId: number, name: string, type: 'Ingreso' | 'Gasto', icon: string, color: string) => {
+    createCategory: async (userId: number, name: string, type: 'Ingreso' | 'Gasto', icon: string, color: string, limitAmount: number = 0) => {
         const cleanName = Validators.sanitizeText(name);
         
         if (!Validators.isValidLength(cleanName, 64) || !Validators.isAlphaWithAccents(cleanName)) {
@@ -46,8 +47,8 @@ export const CategoryService = {
             }
             
             await db.runAsync(
-                'INSERT INTO Categories (name, type, icon, color, user_id) VALUES (?, ?, ?, ?, ?)',
-                [cleanName, type, icon, color, userId]
+                'INSERT INTO Categories (name, type, icon, color, limit_amount, user_id) VALUES (?, ?, ?, ?, ?, ?)',
+                [cleanName, type, icon, color, limitAmount, userId]
             );
             return { success: true };
         } catch (error) {
@@ -56,7 +57,7 @@ export const CategoryService = {
     },
 
 
-    updateCategory: async (id: number, userId: number, name: string, icon: string, color: string) => {
+    updateCategory: async (id: number, userId: number, name: string, icon: string, color: string, limitAmount: number = 0) => {
         const cleanName = Validators.sanitizeText(name);
 
         if (!Validators.isValidLength(cleanName, 64) || !Validators.isAlphaWithAccents(cleanName)) {
@@ -74,8 +75,8 @@ export const CategoryService = {
             }
 
             await db.runAsync(
-                'UPDATE Categories SET name = ?, icon = ?, color = ? WHERE id = ? AND user_id = ?',
-                [cleanName, icon, color, id, userId]
+                'UPDATE Categories SET name = ?, icon = ?, color = ?, limit_amount = ? WHERE id = ? AND user_id = ?',
+                [cleanName, icon, color, limitAmount, id, userId]
             );
             
             return { success: true };

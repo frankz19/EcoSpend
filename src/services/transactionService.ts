@@ -26,24 +26,24 @@ export interface DashboardSummary {
 
 export const TransactionService = {
 
-
     createTransaction: async (
         accountId: number,
         categoryId: number,
         amount: number,
         description: string,
         date: string
-    ) => {
+    ): Promise<{ success: boolean; warning?: string; error?: string }> => {
         const validation = Validators.validateTransactionForm(amount, new Date(date), description);
         if (!validation.isValid) return { success: false, error: validation.errorMessage };
 
         try {
+            let warningMessage: string | undefined = undefined; 
+
             await db.withTransactionAsync(async () => {
-                const cat = await db.getFirstAsync<{ type: string }>(
-                    'SELECT type FROM Categories WHERE id = ?', [categoryId]
+                const cat = await db.getFirstAsync<{ type: string, limit_amount: number, name: string }>(
+                    'SELECT type, limit_amount, name FROM Categories WHERE id = ?', [categoryId]
                 );
                 if (!cat) throw new Error('Categoría no encontrada');
-
 
                 if (cat.type === 'Gasto') {
                     const account = await db.getFirstAsync<{ current_balance: number }>(
@@ -51,6 +51,23 @@ export const TransactionService = {
                     );
                     if (account && account.current_balance < amount) {
                         throw new Error('SALDO_INSUFICIENTE');
+                    }
+
+                    if (cat.limit_amount > 0) {
+                        const monthlySpentRow = await db.getFirstAsync<{ total: number }>(
+                            `SELECT COALESCE(SUM(amount), 0) AS total 
+                             FROM Transactions 
+                             WHERE category_id = ? 
+                             AND strftime('%Y-%m', date) = strftime('%Y-%m', ?)`,
+                            [categoryId, date]
+                        );
+
+                        const totalSoFar = monthlySpentRow?.total || 0;
+                        const totalWithNew = totalSoFar + amount;
+
+                        if (totalWithNew > cat.limit_amount) {
+                            warningMessage = `Has excedido el límite de $${cat.limit_amount} para la categoría ${cat.name}. (Gasto total mes: $${totalWithNew.toFixed(2)})`;
+                        }
                     }
                 }
 
@@ -66,7 +83,11 @@ export const TransactionService = {
                 );
             });
 
-            return { success: true };
+            return { 
+                success: true, 
+                warning: warningMessage 
+            };
+
         } catch (error: any) {
             if (error?.message === 'SALDO_INSUFICIENTE') {
                 return { success: false, error: 'Saldo insuficiente en la cuenta seleccionada.' };
@@ -222,7 +243,7 @@ export const TransactionService = {
             type?: 'Ingreso' | 'Gasto',
             accountId?: number,
             categoryId?: number,
-            startDate?: string, // Formato ISO 'YYYY-MM-DD'
+            startDate?: string,
             endDate?: string
         }
     ): Promise<TransactionWithDetails[]> => {
