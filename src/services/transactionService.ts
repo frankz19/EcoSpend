@@ -16,6 +16,7 @@ export interface TransactionWithDetails {
     category_color: string;
     category_type: 'Ingreso' | 'Gasto';
     account_name: string;
+    account_currency: 'USD' | 'VES';
 }
 
 export interface DashboardSummary {
@@ -103,11 +104,12 @@ export const TransactionService = {
             return await db.getAllAsync<TransactionWithDetails>(
                 `SELECT
                     t.id, t.account_id, t.category_id, t.amount, t.description, t.date, t.created_at,
-                    c.name  AS category_name,
-                    c.icon  AS category_icon,
-                    c.color AS category_color,
-                    c.type  AS category_type,
-                    a.name  AS account_name
+                    c.name     AS category_name,
+                    c.icon     AS category_icon,
+                    c.color    AS category_color,
+                    c.type     AS category_type,
+                    a.name     AS account_name,
+                    a.currency AS account_currency
                 FROM Transactions t
                 JOIN Categories c ON t.category_id = c.id
                 JOIN Accounts   a ON t.account_id  = a.id
@@ -249,13 +251,14 @@ export const TransactionService = {
     ): Promise<TransactionWithDetails[]> => {
         try {
             let query = `
-                SELECT 
+                SELECT
                     t.id, t.account_id, t.category_id, t.amount, t.description, t.date, t.created_at,
-                    c.name  AS category_name,
-                    c.icon  AS category_icon,
-                    c.color AS category_color,
-                    c.type  AS category_type,
-                    a.name  AS account_name
+                    c.name     AS category_name,
+                    c.icon     AS category_icon,
+                    c.color    AS category_color,
+                    c.type     AS category_type,
+                    a.name     AS account_name,
+                    a.currency AS account_currency
                 FROM Transactions t
                 JOIN Categories c ON t.category_id = c.id
                 JOIN Accounts   a ON t.account_id  = a.id

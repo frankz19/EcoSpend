@@ -4,11 +4,16 @@ import { createTablesQuery } from './schema';
 const db = SQLite.openDatabaseSync('ecospend.db');
 
 export const initDatabase = async () => {
+  db.execSync(createTablesQuery);
+
+  // Migraciones: ALTER TABLE falla si la columna ya existe — se ignora por migración
   try {
-    db.execSync(createTablesQuery);
-  } catch (error) {
-    console.error(error);
-  }
+    db.execSync(`ALTER TABLE Accounts ADD COLUMN currency TEXT NOT NULL DEFAULT 'USD';`);
+  } catch (_) {}
+
+  try {
+    db.execSync(`ALTER TABLE Categories ADD COLUMN limit_amount REAL DEFAULT 0;`);
+  } catch (_) {}
 };
 
 export const getDatabase = () => db;

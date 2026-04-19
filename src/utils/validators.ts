@@ -43,9 +43,15 @@ export const Validators = {
       return cleanedText.length > 0 && cleanedText.length <= maxLength;
     },
 
-    // Solo permite letras, espacios y acentos
+    // Solo permite letras, espacios y acentos (uso interno)
     isAlphaWithAccents: (text: string): boolean => {
       const regex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+      return regex.test(text);
+    },
+
+    // Permite letras, números, espacios, acentos y puntuación común (nombres y descripciones)
+    isValidFreeText: (text: string): boolean => {
+      const regex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s\.,\-\/\(\)&+#:_]+$/;
       return regex.test(text);
     },
 
@@ -73,8 +79,8 @@ export const Validators = {
       if (description) {
         const cleanDesc = Validators.sanitizeText(description);
         
-        if (!Validators.isAlphaWithAccents(cleanDesc)) {
-          return { isValid: false, errorMessage: "La descripción solo puede contener letras y espacios" };
+        if (!Validators.isValidFreeText(cleanDesc)) {
+          return { isValid: false, errorMessage: "La descripción contiene caracteres no permitidos" };
         }
 
         if (!Validators.isValidLength(cleanDesc, 180)) {

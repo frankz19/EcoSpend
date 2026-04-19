@@ -32,7 +32,7 @@ export const CategoryService = {
     createCategory: async (userId: number, name: string, type: 'Ingreso' | 'Gasto', icon: string, color: string, limitAmount: number = 0) => {
         const cleanName = Validators.sanitizeText(name);
         
-        if (!Validators.isValidLength(cleanName, 64) || !Validators.isAlphaWithAccents(cleanName)) {
+        if (!Validators.isValidLength(cleanName, 64) || !Validators.isValidFreeText(cleanName)) {
             return { success: false, error: "Nombre inválido (solo letras, máx 64 caracteres)." };
         }
         
@@ -60,7 +60,7 @@ export const CategoryService = {
     updateCategory: async (id: number, userId: number, name: string, icon: string, color: string, limitAmount: number = 0) => {
         const cleanName = Validators.sanitizeText(name);
 
-        if (!Validators.isValidLength(cleanName, 64) || !Validators.isAlphaWithAccents(cleanName)) {
+        if (!Validators.isValidLength(cleanName, 64) || !Validators.isValidFreeText(cleanName)) {
             return { isValid: false, errorMessage: "Nombre inválido." };
         }
 
