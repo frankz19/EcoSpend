@@ -35,7 +35,7 @@ export const AccountService = {
       let cat = await db.getFirstAsync<{id: number}>('SELECT id FROM Categories WHERE name = ? AND user_id = ?', ['Saldo Inicial', userId]);
       
       if (!cat) {
-        await CategoryService.createCategory(userId, 'Saldo Inicial', 'Ingreso', '💰', '#9E9E9E', 0);
+        await CategoryService.createCategory(userId, 'Saldo Inicial', 'Ingreso', 'bank', '#9E9E9E', 0);
         cat = await db.getFirstAsync<{id: number}>('SELECT id FROM Categories WHERE name = ? AND user_id = ?', ['Saldo Inicial', userId]);
       }
 

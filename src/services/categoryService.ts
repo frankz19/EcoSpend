@@ -3,7 +3,6 @@ import { Validators } from "../utils/validators";
 
 const db = getDatabase();
 
-
 export interface Category {
     id: number;
     name: string;
@@ -27,7 +26,6 @@ export const CategoryService = {
             return [];
         }
     },
-
 
     createCategory: async (userId: number, name: string, type: 'Ingreso' | 'Gasto', icon: string, color: string, limitAmount: number = 0) => {
         const cleanName = Validators.sanitizeText(name);
@@ -56,15 +54,16 @@ export const CategoryService = {
         }
     },
 
-
     updateCategory: async (id: number, userId: number, name: string, icon: string, color: string, limitAmount: number = 0) => {
         const cleanName = Validators.sanitizeText(name);
 
         if (!Validators.isValidLength(cleanName, 64) || !Validators.isValidFreeText(cleanName)) {
-            return { isValid: false, errorMessage: "Nombre inválido." };
+            // CORRECCIÓN AQUÍ: Se estandariza el retorno de error a "success: false"
+            return { success: false, error: "Nombre inválido o contiene caracteres no permitidos." };
         }
 
         try {
+            // Verifica que no estemos intentando ponerle el nombre de otra categoría que ya existe
             const existing = await db.getFirstAsync(
                 'SELECT id FROM Categories WHERE LOWER(name) = LOWER(?) AND user_id = ? AND id != ?',
                 [cleanName, userId, id]
@@ -74,6 +73,7 @@ export const CategoryService = {
                 return { success: false, error: "Ya existe otra categoría con ese nombre." };
             }
 
+            // COMANDO ESTRICTO DE ACTUALIZACIÓN
             await db.runAsync(
                 'UPDATE Categories SET name = ?, icon = ?, color = ?, limit_amount = ? WHERE id = ? AND user_id = ?',
                 [cleanName, icon, color, limitAmount, id, userId]
@@ -81,14 +81,13 @@ export const CategoryService = {
             
             return { success: true };
         } catch (error) {
-            return { success: false, error: "Error técnico al actualizar categoría." };
+            console.error(error);
+            return { success: false, error: "Error técnico al actualizar la categoría." };
         }
     },
 
-
     deleteCategory: async (id: number) => {
         try {
-
             const usage = await db.getFirstAsync<{ count: number }>(
                 'SELECT COUNT(*) as count FROM Transactions WHERE category_id = ?',
                 [id]
@@ -100,7 +99,6 @@ export const CategoryService = {
                     error: `No se puede eliminar: Tiene ${usage.count} transacciones asociadas.` 
                 };
             }
-
 
             await db.runAsync('DELETE FROM Categories WHERE id = ?', [id]);
             return { success: true };

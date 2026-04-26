@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { TransactionService } from '../../services/transactionService';
 import { AccountService, Account } from '../../services/accountService';
 import { CategoryService, Category } from '../../services/categoryService';
@@ -41,7 +42,6 @@ const TransactionFormScreen = ({ userId, onBack }: Props) => {
   }, [userId]);
 
   const handleSave = async () => {
-    // 1. Validaciones básicas de UI
     if (!amount || !selectedAcc || !selectedCat) {
       Alert.alert('Error', 'Completa los campos obligatorios');
       return;
@@ -53,28 +53,17 @@ const TransactionFormScreen = ({ userId, onBack }: Props) => {
       return;
     }
 
-    // 2. Llamada al servicio actualizado
     const res = await TransactionService.createTransaction(
-      selectedAcc,
-      selectedCat,
-      parsedAmount,
-      description,
-      new Date().toISOString()
+      selectedAcc, selectedCat, parsedAmount, description, new Date().toISOString()
     ) as TransactionResponse;
 
     if (res.success) {
-      // 3. Si hay un aviso de presupuesto (warning), lo mostramos antes de salir
       if (res.warning) {
-        Alert.alert(
-          'Presupuesto Excedido', 
-          res.warning, 
-          [{ text: 'Entendido', onPress: () => onBack() }]
-        );
+        Alert.alert('Presupuesto Excedido', res.warning, [{ text: 'Entendido', onPress: () => onBack() }]);
       } else {
         onBack();
       }
     } else {
-      // Manejo de errores específicos (como saldo insuficiente) o genéricos
       Alert.alert('Error', res.error || 'No se pudo guardar la operación');
     }
   };
@@ -93,33 +82,20 @@ const TransactionFormScreen = ({ userId, onBack }: Props) => {
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.typeContainer}>
-          <TouchableOpacity 
-            style={[styles.typeBtn, type === 'Gasto' && styles.activeGasto]} 
-            onPress={() => { setType('Gasto'); setSelectedCat(null); }}>
+          <TouchableOpacity style={[styles.typeBtn, type === 'Gasto' && styles.activeGasto]} onPress={() => { setType('Gasto'); setSelectedCat(null); }}>
             <Text style={type === 'Gasto' && styles.whiteText}>Gasto</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.typeBtn, type === 'Ingreso' && styles.activeIngreso]} 
-            onPress={() => { setType('Ingreso'); setSelectedCat(null); }}>
+          <TouchableOpacity style={[styles.typeBtn, type === 'Ingreso' && styles.activeIngreso]} onPress={() => { setType('Ingreso'); setSelectedCat(null); }}>
             <Text style={type === 'Ingreso' && styles.whiteText}>Ingreso</Text>
           </TouchableOpacity>
         </View>
 
-        <TextInput 
-          style={styles.amountInput} 
-          placeholder="0.00" 
-          keyboardType="numeric" 
-          value={amount} 
-          onChangeText={setAmount} 
-        />
+        <TextInput style={styles.amountInput} placeholder="0.00" keyboardType="numeric" value={amount} onChangeText={setAmount} />
 
         <Text style={styles.label}>Cuenta</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
           {accounts.map(acc => (
-            <TouchableOpacity 
-              key={acc.id} 
-              style={[styles.chip, selectedAcc === acc.id && styles.activeChip]}
-              onPress={() => setSelectedAcc(acc.id)}>
+            <TouchableOpacity key={acc.id} style={[styles.chip, selectedAcc === acc.id && styles.activeChip]} onPress={() => setSelectedAcc(acc.id)}>
               <Text>{acc.name}</Text>
             </TouchableOpacity>
           ))}
@@ -128,23 +104,17 @@ const TransactionFormScreen = ({ userId, onBack }: Props) => {
         <Text style={styles.label}>Categoria</Text>
         <View style={styles.catGrid}>
           {filteredCats.map(cat => (
-            <TouchableOpacity 
-              key={cat.id} 
-              style={[styles.catItem, selectedCat === cat.id && { borderColor: cat.color}]}
+            <TouchableOpacity key={cat.id} 
+              style={[styles.catItem, selectedCat === cat.id && { borderColor: cat.color, backgroundColor: cat.color + '15' }]}
               onPress={() => setSelectedCat(cat.id)}>
-              <View style={[styles.catColor, { backgroundColor: cat.color }]} />
-              <Text style={styles.catName}>{cat.name}</Text>
+              <MaterialCommunityIcons name={cat.icon as any} size={28} color={selectedCat === cat.id ? cat.color : '#999'} style={{ marginBottom: 5 }} />
+              <Text style={[styles.catName, selectedCat === cat.id && { color: cat.color, fontWeight: 'bold' }]}>{cat.name}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
         <Text style={styles.label}>Nota (opcional)</Text>
-        <TextInput 
-          style={styles.input} 
-          placeholder="Descripcion..." 
-          value={description} 
-          onChangeText={setDescription} 
-        />
+        <TextInput style={styles.input} placeholder="Descripcion..." value={description} onChangeText={setDescription} />
 
         <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
           <Text style={styles.whiteText}>Guardar</Text>
@@ -171,9 +141,8 @@ const styles = StyleSheet.create({
   chip: { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#F0F0F0', borderRadius: 20, marginRight: 10 },
   activeChip: { backgroundColor: '#DDD', borderWidth: 1 },
   catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
-  catItem: { width: '30%', padding: 10, backgroundColor: '#F9F9F9', borderRadius: 15, alignItems: 'center', borderWidth: 1, borderColor: '#EEE' },
-  catColor: { width: 20, height: 20, borderRadius: 10, marginBottom: 5 },
-  catName: { fontSize: 12, textAlign: 'center' },
+  catItem: { width: '31%', padding: 12, backgroundColor: '#F9F9F9', borderRadius: 15, alignItems: 'center', borderWidth: 1, borderColor: '#EEE' },
+  catName: { fontSize: 12, textAlign: 'center', color: '#666' },
   input: { borderBottomWidth: 1, borderColor: '#EEE', padding: 10, marginBottom: 30 },
   saveBtn: { backgroundColor: '#6200EE', padding: 18, borderRadius: 20, alignItems: 'center' }
 });

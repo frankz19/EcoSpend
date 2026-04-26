@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-  View, Text, StyleSheet, TouchableOpacity, Modal,
-  ActivityIndicator, ScrollView, FlatList,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ActivityIndicator, ScrollView, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { TransactionService, TransactionWithDetails } from '../../services/transactionService';
 import { AccountService, Account } from '../../services/accountService';
 import { CurrencyService } from '../../services/currencyService';
@@ -22,15 +20,12 @@ interface CategoryGroup {
 }
 
 const ReportsScreen = ({ userId, onBack }: Props) => {
-
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState<TransactionWithDetails[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
-
   const [selectedType, setSelectedType] = useState<'Gasto' | 'Ingreso'>('Gasto');
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [filterAcc, setFilterAcc] = useState<number | null>(null);
-
   const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
   const [activeDropdown, setActiveDropdown] = useState<'acc' | null>(null);
 
@@ -48,18 +43,15 @@ const ReportsScreen = ({ userId, onBack }: Props) => {
     loadData();
   }, [userId]);
 
-  // Moneda de la cuenta seleccionada; null = "Todas" → normalizar a USD
   const selectedAccountCurrency: Currency | null = useMemo(() => {
     if (filterAcc === null) return null;
     return accounts.find(a => a.id === filterAcc)?.currency ?? 'USD';
   }, [filterAcc, accounts]);
 
-  // Moneda que se usa para mostrar totales
   const displayCurrency: Currency = selectedAccountCurrency ?? 'USD';
 
   const reportData = useMemo(() => {
     const currentYear = new Date().getFullYear();
-
     const filtered = transactions.filter(tx => {
       const d = new Date(tx.date);
       return (
@@ -74,9 +66,7 @@ const ReportsScreen = ({ userId, onBack }: Props) => {
     let total = 0;
 
     filtered.forEach(tx => {
-      // Si es "Todas", convertimos cada transacción a USD para sumar correctamente
-      const amountInDisplay =
-        filterAcc === null
+      const amountInDisplay = filterAcc === null
           ? CurrencyService.convert(tx.amount, tx.account_currency ?? 'USD', 'USD').convertedAmount
           : tx.amount;
 
@@ -88,10 +78,7 @@ const ReportsScreen = ({ userId, onBack }: Props) => {
       total += amountInDisplay;
     });
 
-    return {
-      list: Object.values(categoryMap).sort((a, b) => b.total - a.total),
-      total,
-    };
+    return { list: Object.values(categoryMap).sort((a, b) => b.total - a.total), total };
   }, [transactions, filterAcc, selectedType, selectedMonth]);
 
   const handleSelect = (val: any) => {
@@ -111,9 +98,7 @@ const ReportsScreen = ({ userId, onBack }: Props) => {
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setActiveDropdown(null)}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Seleccionar Cuenta</Text>
-            <FlatList
-              data={options}
-              keyExtractor={(_, i) => i.toString()}
+            <FlatList data={options} keyExtractor={(_, i) => i.toString()}
               renderItem={({ item }) => (
                 <TouchableOpacity style={styles.modalOption} onPress={() => handleSelect(item.value)}>
                   <Text style={styles.modalOptionText}>{item.label}</Text>
@@ -127,9 +112,7 @@ const ReportsScreen = ({ userId, onBack }: Props) => {
   };
 
   const symbol = CurrencyService.symbol(displayCurrency);
-  const selectedAccLabel = filterAcc === null
-    ? 'Todas'
-    : accounts.find(a => a.id === filterAcc)?.name ?? '';
+  const selectedAccLabel = filterAcc === null ? 'Todas' : accounts.find(a => a.id === filterAcc)?.name ?? '';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -139,38 +122,25 @@ const ReportsScreen = ({ userId, onBack }: Props) => {
         <View style={{ width: 40 }} />
       </View>
 
-      {/* Selector de mes */}
       <View style={styles.filterContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {months.map((m, i) => (
-            <TouchableOpacity
-              key={m}
-              onPress={() => setSelectedMonth(i)}
-              style={[styles.monthChip, selectedMonth === i && styles.activeMonth]}
-            >
+            <TouchableOpacity key={m} onPress={() => setSelectedMonth(i)} style={[styles.monthChip, selectedMonth === i && styles.activeMonth]}>
               <Text style={selectedMonth === i ? styles.whiteText : styles.grayText}>{m}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
       </View>
 
-      {/* Selector Gasto/Ingreso */}
       <View style={styles.typeSelector}>
-        <TouchableOpacity
-          style={[styles.typeBtn, selectedType === 'Gasto' && styles.activeGasto]}
-          onPress={() => setSelectedType('Gasto')}
-        >
+        <TouchableOpacity style={[styles.typeBtn, selectedType === 'Gasto' && styles.activeGasto]} onPress={() => setSelectedType('Gasto')}>
           <Text style={selectedType === 'Gasto' ? styles.whiteText : styles.grayText}>Gastos</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.typeBtn, selectedType === 'Ingreso' && styles.activeIngreso]}
-          onPress={() => setSelectedType('Ingreso')}
-        >
+        <TouchableOpacity style={[styles.typeBtn, selectedType === 'Ingreso' && styles.activeIngreso]} onPress={() => setSelectedType('Ingreso')}>
           <Text style={selectedType === 'Ingreso' ? styles.whiteText : styles.grayText}>Ingresos</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Selector de cuenta */}
       <View style={styles.filtersWrapper}>
         <TouchableOpacity style={styles.dropdownBtn} onPress={() => setActiveDropdown('acc')}>
           <Text style={styles.dropdownLabel}>Cuenta</Text>
@@ -184,17 +154,12 @@ const ReportsScreen = ({ userId, onBack }: Props) => {
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>
-              Total {selectedType === 'Gasto' ? 'Gastado' : 'Recibido'}
-              {filterAcc === null ? '  (convertido a USD)' : ''}
-            </Text>
+            <Text style={styles.summaryLabel}>Total {selectedType === 'Gasto' ? 'Gastado' : 'Recibido'} {filterAcc === null ? '  (USD)' : ''}</Text>
             <Text style={[styles.summaryValue, { color: selectedType === 'Gasto' ? '#FF5252' : '#2ECC71' }]}>
               {symbol} {reportData.total.toFixed(2)}
             </Text>
             {filterAcc === null && (
-              <Text style={styles.rateNote}>
-                Tasa usada: {CurrencyService.getCurrentRate().rate} Bs/$
-              </Text>
+              <Text style={styles.rateNote}>Tasa usada: {CurrencyService.getCurrentRate().rate} Bs/$</Text>
             )}
           </View>
 
@@ -203,10 +168,11 @@ const ReportsScreen = ({ userId, onBack }: Props) => {
             return (
               <View key={item.name} style={styles.reportRow}>
                 <View style={styles.rowInfo}>
-                  <Text style={styles.catText}>{item.icon} {item.name}</Text>
-                  <Text style={styles.amountText}>
-                    {symbol} {item.total.toFixed(2)} ({pct.toFixed(1)}%)
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <MaterialCommunityIcons name={item.icon as any} size={20} color={item.color} style={{ marginRight: 8 }} />
+                    <Text style={styles.catText}>{item.name}</Text>
+                  </View>
+                  <Text style={styles.amountText}>{symbol} {item.total.toFixed(2)} ({pct.toFixed(1)}%)</Text>
                 </View>
                 <View style={styles.progressBarBg}>
                   <View style={[styles.progressBarFill, { width: `${pct}%`, backgroundColor: item.color }]} />
@@ -246,8 +212,8 @@ const styles = StyleSheet.create({
   summaryValue: { fontSize: 32, fontWeight: 'bold', marginTop: 10 },
   rateNote: { fontSize: 11, color: '#AAA', marginTop: 6 },
   reportRow: { marginBottom: 20 },
-  rowInfo: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  catText: { fontSize: 15, fontWeight: '600' },
+  rowInfo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  catText: { fontSize: 15, fontWeight: '600', color: '#333' },
   amountText: { fontSize: 13, color: '#666' },
   progressBarBg: { height: 8, backgroundColor: '#E0E0E0', borderRadius: 4, overflow: 'hidden' },
   progressBarFill: { height: '100%', borderRadius: 4 },

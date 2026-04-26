@@ -21,14 +21,14 @@ const RegisterScreen = ({ onBack, onRegisterSuccess }: Props) => {
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Las contrasenas no coinciden');
+      Alert.alert('Error', 'Las contraseñas no coinciden');
       return;
     }
 
     const result = await AuthService.register(username, email, password);
 
     if (result.success) {
-      Alert.alert('Exito', 'Cuenta creada.', [{ text: 'OK', onPress: onRegisterSuccess }]);
+      Alert.alert('Éxito', 'Cuenta creada.', [{ text: 'OK', onPress: onRegisterSuccess }]);
     } else {
       Alert.alert('Error', result.error);
     }
@@ -46,10 +46,36 @@ const RegisterScreen = ({ onBack, onRegisterSuccess }: Props) => {
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <Text style={styles.welcomeTitle}>Crear Cuenta</Text>
         <View style={styles.form}>
-          <TextInput style={styles.input} value={username} onChangeText={setUsername} placeholder="Usuario" />
-          <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="Correo" keyboardType="email-address" />
-          <TextInput style={styles.input} value={password} onChangeText={setPassword} placeholder="Contrasena" secureTextEntry />
-          <TextInput style={styles.input} value={confirmPassword} onChangeText={setConfirmPassword} placeholder="Confirmar" secureTextEntry />
+
+          <TextInput 
+            style={styles.input} 
+            value={username} 
+            onChangeText={setUsername} 
+            placeholder="Usuario" 
+            autoCapitalize="none" 
+          />
+          <TextInput 
+            style={styles.input} 
+            value={email} 
+            onChangeText={setEmail} 
+            placeholder="Correo" 
+            keyboardType="email-address" 
+            autoCapitalize="none" 
+          />
+          <TextInput 
+            style={styles.input} 
+            value={password} 
+            onChangeText={setPassword} 
+            placeholder="Contraseña" 
+            secureTextEntry 
+          />
+          <TextInput 
+            style={styles.input} 
+            value={confirmPassword} 
+            onChangeText={setConfirmPassword} 
+            placeholder="Confirmar" 
+            secureTextEntry 
+          />
         </View>
         <TouchableOpacity style={styles.button} onPress={handleRegister}>
           <Text style={styles.buttonText}>Registrarse</Text>

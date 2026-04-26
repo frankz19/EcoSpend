@@ -16,10 +16,12 @@ import AddCategoryScreen from './src/screens/categories/AddCategoryScreen';
 import ReportsScreen from './src/screens/reports/ReportsScreen';
 import RemindersScreen from './src/screens/reminders/RemindersScreen';
 import AddReminderScreen from './src/screens/reminders/AddReminderScreen';
+import { Category } from './src/services/categoryService';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('welcome');
   const [userId, setUserId] = useState<number | null>(null);
+  const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);
   const [dbReady, setDbReady] = useState(false);
 
   useEffect(() => {
@@ -69,9 +71,22 @@ export default function App() {
       case 'add_account':
         return <AddAccountScreen userId={userId!} onBack={() => setCurrentScreen('accounts')} />;
       case 'categories':
-        return <CategoriesScreen userId={userId!} onAdd={() => setCurrentScreen('add_category')} onBack={() => setCurrentScreen('dashboard')} />;
+        return (
+          <CategoriesScreen 
+            userId={userId!} 
+            onAdd={() => { setCategoryToEdit(null); setCurrentScreen('add_category'); }} 
+            onEdit={(cat) => { setCategoryToEdit(cat); setCurrentScreen('add_category'); }}
+            onBack={() => setCurrentScreen('dashboard')} 
+          />
+        );
       case 'add_category':
-        return <AddCategoryScreen userId={userId!} onBack={() => setCurrentScreen('categories')} />;
+        return (
+          <AddCategoryScreen 
+            userId={userId!} 
+            category={categoryToEdit || undefined}
+            onBack={() => { setCategoryToEdit(null); setCurrentScreen('categories'); }} 
+          />
+        );
       case 'reports':
         return <ReportsScreen userId={userId!} onBack={() => setCurrentScreen('dashboard')} />;
       case 'reminders':

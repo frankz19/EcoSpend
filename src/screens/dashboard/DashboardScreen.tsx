@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Modal, TextInput,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { TransactionService, TransactionWithDetails } from '../../services/transactionService';
 import { AccountService } from '../../services/accountService';
 import { CurrencyService } from '../../services/currencyService';
@@ -19,10 +17,7 @@ interface Props {
   onLogout: () => void;
 }
 
-const DashboardScreen = ({
-  userId, onAddTransaction, onViewHistory, onViewAccounts,
-  onViewCategories, onViewReports, onViewReminders, onLogout,
-}: Props) => {
+const DashboardScreen = ({ userId, onAddTransaction, onViewHistory, onViewAccounts, onViewCategories, onViewReports, onViewReminders, onLogout }: Props) => {
   const [totalBalanceUSD, setTotalBalanceUSD] = useState(0);
   const [recentTransactions, setRecentTransactions] = useState<TransactionWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,12 +33,9 @@ const DashboardScreen = ({
         AccountService.getAccounts(userId),
         TransactionService.getFilteredTransactions(userId, {}),
       ]);
-
       const totalUSD = CurrencyService.normalizeAmounts(
-        accs.map(a => ({ amount: a.current_balance, currency: a.currency ?? 'USD' })),
-        'USD'
+        accs.map(a => ({ amount: a.current_balance, currency: a.currency ?? 'USD' })), 'USD'
       );
-
       setTotalBalanceUSD(totalUSD);
       setRecentTransactions(txs.slice(0, 5));
     } finally {
@@ -53,12 +45,10 @@ const DashboardScreen = ({
 
   useEffect(() => { loadData(); }, [userId]);
 
-  // Recalcula el total cuando cambia la tasa
   useEffect(() => {
     AccountService.getAccounts(userId).then(accs => {
       const totalUSD = CurrencyService.normalizeAmounts(
-        accs.map(a => ({ amount: a.current_balance, currency: a.currency ?? 'USD' })),
-        'USD'
+        accs.map(a => ({ amount: a.current_balance, currency: a.currency ?? 'USD' })), 'USD'
       );
       setTotalBalanceUSD(totalUSD);
     });
@@ -83,13 +73,9 @@ const DashboardScreen = ({
 
         <View style={styles.card}>
           <Text style={{ color: '#EEE' }}>Saldo Total (USD)</Text>
-          <Text style={styles.balance}>
-            ${totalBalanceUSD.toLocaleString('es', { minimumFractionDigits: 2 })}
-          </Text>
+          <Text style={styles.balance}>${totalBalanceUSD.toLocaleString('es', { minimumFractionDigits: 2 })}</Text>
           <TouchableOpacity onPress={() => { setRateInput(String(exchangeRate)); setRateModalVisible(true); }}>
-            <Text style={styles.rateHint}>
-              Tasa: {exchangeRate} Bs/$ ✎
-            </Text>
+            <Text style={styles.rateHint}>Tasa: {exchangeRate} Bs/$ ✎</Text>
           </TouchableOpacity>
         </View>
 
@@ -125,8 +111,10 @@ const DashboardScreen = ({
             const symbol = tx.account_currency === 'VES' ? 'Bs.' : '$';
             return (
               <View key={tx.id} style={styles.tx}>
-                <View style={[styles.txCircle, { backgroundColor: tx.category_color + '20' }]} />
-                <View style={{ flex: 1, marginLeft: 10 }}>
+                <View style={[styles.txIconContainer, { backgroundColor: tx.category_color + '20' }]}>
+                  <MaterialCommunityIcons name={tx.category_icon as any} size={24} color={tx.category_color} />
+                </View>
+                <View style={{ flex: 1, marginLeft: 15 }}>
                   <Text style={styles.txCat}>{tx.category_name}</Text>
                   <Text style={styles.txDesc}>{tx.description || 'Sin nota'}</Text>
                 </View>
@@ -143,27 +131,15 @@ const DashboardScreen = ({
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
 
-      {/* Modal para fijar la tasa de cambio */}
       <Modal visible={rateModalVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>Tasa de cambio</Text>
             <Text style={styles.modalSubtitle}>Bolívares por 1 dólar (Bs/$)</Text>
-            <TextInput
-              style={styles.modalInput}
-              keyboardType="numeric"
-              value={rateInput}
-              onChangeText={setRateInput}
-              placeholder="Ej: 36.50"
-              autoFocus
-            />
+            <TextInput style={styles.modalInput} keyboardType="numeric" value={rateInput} onChangeText={setRateInput} placeholder="Ej: 36.50" autoFocus />
             <View style={styles.modalActions}>
-              <TouchableOpacity onPress={() => setRateModalVisible(false)} style={styles.cancelBtn}>
-                <Text style={{ color: '#666' }}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={saveRate} style={styles.saveBtn}>
-                <Text style={{ color: '#FFF', fontWeight: 'bold' }}>Guardar</Text>
-              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setRateModalVisible(false)} style={styles.cancelBtn}><Text style={{ color: '#666' }}>Cancelar</Text></TouchableOpacity>
+              <TouchableOpacity onPress={saveRate} style={styles.saveBtn}><Text style={{ color: '#FFF', fontWeight: 'bold' }}>Guardar</Text></TouchableOpacity>
             </View>
           </View>
         </View>
@@ -189,7 +165,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 18, fontWeight: 'bold' },
   seeAll: { color: '#6200EE', fontWeight: 'bold' },
   tx: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', padding: 15, borderRadius: 15, marginBottom: 10 },
-  txCircle: { width: 12, height: 12, borderRadius: 6 },
+  txIconContainer: { width: 45, height: 45, borderRadius: 22.5, justifyContent: 'center', alignItems: 'center' },
   txCat: { fontWeight: 'bold', fontSize: 15 },
   txDesc: { fontSize: 12, color: '#999' },
   txAmount: { fontWeight: 'bold', fontSize: 16 },
