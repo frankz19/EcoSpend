@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   View, Text, StyleSheet, FlatList, TouchableOpacity, 
-  ActivityIndicator, TextInput, Modal 
+  ActivityIndicator, TextInput, Modal, Alert 
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { TransactionService, TransactionWithDetails } from '../../services/transactionService';
@@ -32,25 +32,67 @@ const HistoryScreen = ({ userId, onBack, onEdit }: Props) => {
   const [page, setPage] = useState(0);
   const itemsPerPage = 20;
 
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [txs, accs, cats] = await Promise.all([
+        TransactionService.getFilteredTransactions(userId, {}),
+        AccountService.getAccounts(userId),
+        CategoryService.getCategories(userId)
+      ]);
+      setTransactions(txs);
+      setAccounts(accs);
+      setCategories(cats);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        const [txs, accs, cats] = await Promise.all([
-          TransactionService.getFilteredTransactions(userId, {}),
-          AccountService.getAccounts(userId),
-          CategoryService.getCategories(userId)
-        ]);
-        setTransactions(txs);
-        setAccounts(accs);
-        setCategories(cats);
-      } finally {
-        setLoading(false);
-      }
-    };
+    
     loadData();
   }, [userId]);
 
+  const handleLongPress = (transaction : TransactionWithDetails) => {
+    Alert.alert(
+      'Opciones de movimiento',
+      `¿Qué deseas hacer con el registro de "${transaction.category_name}"?`,
+      [
+        {
+          text: 'Editar',
+          onPress: () => onEdit(transaction)
+        },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () => confirmDelete(transaction)
+        },
+        {text: 'Cancelar', style: 'cancel'}
+      ]
+    );
+  };
+
+  const confirmDelete = (transaction: TransactionWithDetails) => {
+    Alert.alert(
+      'Eliminar Transacción',
+      '¿Estás seguro? El saldo de la cuenta se ajustará automáticamente.',
+      [
+        {text: 'Cancelar', style: 'cancel'},
+        {
+          text: 'Sí, eliminar',
+          style: 'destructive',
+          onPress: async() => {
+            const res = await TransactionService.deleteTransaction(transaction.id);
+            if(res.success) {
+              loadData();
+            } else {
+              Alert.alert('Error', res.error);
+            }
+          }
+        }
+      ]
+    );
+  };
 
   const filteredData = useMemo(() => {
     return transactions.filter(tx => {
@@ -99,6 +141,8 @@ const HistoryScreen = ({ userId, onBack, onEdit }: Props) => {
     return '';
   };
 
+  
+
   const renderDropdownModal = () => {
     if (!activeDropdown) return null;
     
@@ -132,7 +176,7 @@ const HistoryScreen = ({ userId, onBack, onEdit }: Props) => {
   const renderItem = ({ item }: { item: TransactionWithDetails }) => {
     const isIngreso = item.category_type === 'Ingreso';
     return (
-      <TouchableOpacity style={styles.card} onPress={() => onEdit(item)}>
+      <TouchableOpacity style={styles.card} onLongPress={() => handleLongPress(item)} >
         <View style={[styles.indicator, { backgroundColor: item.category_color }]} />
         <View style={styles.info}>
           <Text style={styles.catName}>{item.category_name}</Text>
