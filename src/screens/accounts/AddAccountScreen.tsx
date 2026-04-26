@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Alert, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AccountService, Currency } from '../../services/accountService';
+import { Account, AccountService, Currency } from '../../services/accountService';
 
 interface Props {
   userId: number;
   onBack: () => void;
+  account?: Account;
 }
 
 const CURRENCIES: { value: Currency; label: string }[] = [
@@ -13,34 +14,73 @@ const CURRENCIES: { value: Currency; label: string }[] = [
   { value: 'VES', label: 'VES — Bolívares' },
 ];
 
-const AddAccountScreen = ({ userId, onBack }: Props) => {
+const AddAccountScreen = ({ userId, onBack, account }: Props) => {
   const [name, setName] = useState('');
   const [balance, setBalance] = useState('');
   const [currency, setCurrency] = useState<Currency>('USD');
 
+  useEffect(() => {
+    if (account) {
+      setName(account.name);
+      setBalance(account.current_balance.toString());
+      setCurrency(account.currency);
+    }
+  }, [account]);
+
   const save = async () => {
-    if (!name || !balance) return;
-    await AccountService.createAccount(userId, name, 'Efectivo', parseFloat(balance), currency);
-    onBack();
+    if (!name || (!account && !balance)) return;
+  
+    let success = false;
+    let errorMsg = 'Ocurrió un error';
+  
+    if (account) {
+      const res = await AccountService.updateAccount(account.id, name) as any;
+      success = res.success;
+      errorMsg = res.error;
+    } else {
+      try {
+        const res = await AccountService.createAccount(
+          userId, 
+          name, 
+          'Efectivo', 
+          parseFloat(balance), 
+          currency
+        );
+        success = !!res; 
+      } catch (e) {
+        success = false;
+        errorMsg = 'No se pudo crear la cuenta';
+      }
+    }
+  
+    if (success) {
+      onBack();
+    } else {
+      Alert.alert('Error', errorMsg);
+    }
   };
+
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack}><Text style={styles.back}>‹</Text></TouchableOpacity>
-        <Text style={styles.title}>Nueva Cuenta</Text>
+        <Text style={styles.title}>
+          {account ? 'Editar Cuenta' : 'Nueva Cuenta'}
+        </Text>
         <View style={{ width: 40 }} />
       </View>
       <View style={{ padding: 20, gap: 15 }}>
         <TextInput style={styles.input} placeholder="Nombre" value={name} onChangeText={setName} />
-        <TextInput style={styles.input} placeholder="Saldo inicial" value={balance} onChangeText={setBalance} keyboardType="numeric" />
+        <TextInput style={styles.input} placeholder="Saldo inicial" value={balance} onChangeText={setBalance} keyboardType="numeric" editable={!account}/>
 
         <Text style={styles.label}>Moneda</Text>
         <View style={styles.currencyRow}>
           {CURRENCIES.map(c => (
             <TouchableOpacity
               key={c.value}
-              style={[styles.currencyBtn, currency === c.value && styles.currencyBtnActive]}
+              disabled = {!!account}
+              style={[styles.currencyBtn, currency === c.value && styles.currencyBtnActive, account && { opacity: 0.6 }]}
               onPress={() => setCurrency(c.value)}
             >
               <Text style={[styles.currencyText, currency === c.value && styles.currencyTextActive]}>
