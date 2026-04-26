@@ -23,11 +23,15 @@ import ReportsScreen from './src/screens/reports/ReportsScreen';
 import RemindersScreen from './src/screens/reminders/RemindersScreen';
 import AddReminderScreen from './src/screens/reminders/AddReminderScreen';
 import { Category } from './src/services/categoryService';
+import { TransactionWithDetails } from './src/services/transactionService';
+import { Account } from './src/services/accountService';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'loading' | string>('loading');
   const [userId, setUserId] = useState<number | null>(null);
   const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);
+  const [transactionToEdit, setTransactionToEdit] = useState<TransactionWithDetails | null>(null);
+  const [accountToEdit, setAccountToEdit] = useState<Account | null>(null);
   const [dbReady, setDbReady] = useState(false);
 
   useEffect(() => {
@@ -137,13 +141,48 @@ export default function App() {
         );
       case 'transaction_form':
         return <TransactionFormScreen userId={userId!} onBack={() => setCurrentScreen('dashboard')} />;
-      case 'history':
-        return <HistoryScreen userId={userId!} onBack={() => setCurrentScreen('dashboard')} onEdit={() => {}} />;
-      case 'accounts':
-        return <AccountsScreen userId={userId!} onAdd={() => setCurrentScreen('add_account')} onBack={() => setCurrentScreen('dashboard')} />;
-      case 'add_account':
-        return <AddAccountScreen userId={userId!} onBack={() => setCurrentScreen('accounts')} />;
-      case 'categories':
+        case 'history':
+          return (
+            <HistoryScreen 
+              userId={userId!} 
+              onBack={() => setCurrentScreen('dashboard')} 
+              onEdit={(tx) => { 
+                setTransactionToEdit(tx); 
+                setCurrentScreen('add_transaction'); 
+              }} 
+            />
+          );
+        
+        case 'add_transaction':
+          return (
+            <TransactionFormScreen 
+              userId={userId!} 
+              transaction={transactionToEdit || undefined} 
+              onBack={() => {
+                setTransactionToEdit(null); 
+                setCurrentScreen('history');
+              }} 
+            />
+          );
+        case 'accounts':
+          return (
+            <AccountsScreen 
+                userId={userId!} 
+                onAdd={() => { setAccountToEdit(null); setCurrentScreen('add_account'); }} 
+                onEdit={(acc) => { setAccountToEdit(acc); setCurrentScreen('add_account'); }}
+                onBack={() => setCurrentScreen('dashboard')} 
+            />
+          );
+      
+        case 'add_account':
+          return (
+            <AddAccountScreen 
+                userId={userId!} 
+                account={accountToEdit || undefined} 
+                onBack={() => { setAccountToEdit(null); setCurrentScreen('accounts'); }} 
+            />
+        );
+        case 'categories':
         return (
           <CategoriesScreen 
             userId={userId!} 
