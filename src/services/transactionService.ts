@@ -195,7 +195,7 @@ export const TransactionService = {
     },
 
 
-    updateTransaction: async (id: number, newData: { amount: number, category_id: number, description: string, date: string }) => {
+    updateTransaction: async (id: number, newData: { amount: number, category_id: number, account_id:number, description: string, date: string }) => {
         const validation = Validators.validateTransactionForm(newData.amount, new Date(newData.date), newData.description);
         if (!validation.isValid) return { success: false, error: validation.errorMessage };
 
@@ -225,8 +225,8 @@ export const TransactionService = {
                 );
 
                 await db.runAsync(
-                    `UPDATE Transactions SET amount = ?, category_id = ?, description = ?, date = ? WHERE id = ?`,
-                    [newData.amount, newData.category_id, newData.description, newData.date, id]
+                    `UPDATE Transactions SET amount = ?, category_id = ?, account_id = ?, description = ?, date = ? WHERE id = ?`,
+                    [newData.amount, newData.category_id, newData.account_id, newData.description, newData.date, id]
                 );
             });
 
