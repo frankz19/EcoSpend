@@ -67,7 +67,7 @@ const ReportsScreen = ({ userId, onBack }: Props) => {
 
     filtered.forEach(tx => {
       const amountInDisplay = filterAcc === null
-          ? CurrencyService.convert(tx.amount, tx.account_currency ?? 'USD', 'USD').convertedAmount
+          ? CurrencyService.convert(tx.amount, tx.account_currency as Currency, 'USD', tx.exchange_rate)
           : tx.amount;
 
       const key = tx.category_id;
@@ -159,7 +159,7 @@ const ReportsScreen = ({ userId, onBack }: Props) => {
               {symbol} {reportData.total.toFixed(2)}
             </Text>
             {filterAcc === null && (
-              <Text style={styles.rateNote}>Tasa usada: {CurrencyService.getCurrentRate().rate} Bs/$</Text>
+              <Text style={styles.rateNote}>Valores historicos calculados en USD</Text>
             )}
           </View>
 

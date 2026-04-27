@@ -20,13 +20,11 @@ const HistoryScreen = ({ userId, onBack, onEdit }: Props) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   
-
   const [searchText, setSearchText] = useState('');
   const [filterType, setFilterType] = useState<'Todos' | 'Gasto' | 'Ingreso'>('Todos');
   const [filterAcc, setFilterAcc] = useState<number | null>(null);
   const [filterCat, setFilterCat] = useState<number | null>(null);
   
-
   const [activeDropdown, setActiveDropdown] = useState<'type' | 'acc' | 'cat' | null>(null);
   
   const [page, setPage] = useState(0);
@@ -49,14 +47,13 @@ const HistoryScreen = ({ userId, onBack, onEdit }: Props) => {
   };
 
   useEffect(() => {
-    
     loadData();
   }, [userId]);
 
   const handleLongPress = (transaction : TransactionWithDetails) => {
     Alert.alert(
       'Opciones de movimiento',
-      `¿Qué deseas hacer con el registro de "${transaction.category_name}"?`,
+      `¿Que deseas hacer con el registro de "${transaction.category_name}"?`,
       [
         {
           text: 'Editar',
@@ -74,12 +71,12 @@ const HistoryScreen = ({ userId, onBack, onEdit }: Props) => {
 
   const confirmDelete = (transaction: TransactionWithDetails) => {
     Alert.alert(
-      'Eliminar Transacción',
-      '¿Estás seguro? El saldo de la cuenta se ajustará automáticamente.',
+      'Eliminar Transaccion',
+      '¿Estas seguro? El saldo de la cuenta se ajustara automaticamente.',
       [
         {text: 'Cancelar', style: 'cancel'},
         {
-          text: 'Sí, eliminar',
+          text: 'Si, eliminar',
           style: 'destructive',
           onPress: async() => {
             const res = await TransactionService.deleteTransaction(transaction.id);
@@ -108,7 +105,6 @@ const HistoryScreen = ({ userId, onBack, onEdit }: Props) => {
 
   const paginatedData = filteredData.slice(page * itemsPerPage, (page + 1) * itemsPerPage);
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-
 
   const typeOptions = [
     { label: 'Todos', value: 'Todos' },
@@ -140,8 +136,6 @@ const HistoryScreen = ({ userId, onBack, onEdit }: Props) => {
     if (type === 'cat') return filterCat === null ? 'Todas' : categories.find(c => c.id === filterCat)?.name || 'Todas';
     return '';
   };
-
-  
 
   const renderDropdownModal = () => {
     if (!activeDropdown) return null;
@@ -175,6 +169,9 @@ const HistoryScreen = ({ userId, onBack, onEdit }: Props) => {
 
   const renderItem = ({ item }: { item: TransactionWithDetails }) => {
     const isIngreso = item.category_type === 'Ingreso';
+    const amountInUSD = item.amount / item.exchange_rate;
+    const isVES = item.account_currency === 'VES';
+
     return (
       <TouchableOpacity style={styles.card} onLongPress={() => handleLongPress(item)} >
         <View style={[styles.indicator, { backgroundColor: item.category_color }]} />
@@ -182,10 +179,13 @@ const HistoryScreen = ({ userId, onBack, onEdit }: Props) => {
           <Text style={styles.catName}>{item.category_name}</Text>
           <Text style={styles.date}>{item.date.split('T')[0]}</Text>
           {item.description ? <Text style={styles.desc}>{item.description}</Text> : null}
+          {isVES && (
+              <Text style={styles.txRateInfo}>Bs. {item.amount.toFixed(2)} (Tasa: {item.exchange_rate})</Text>
+          )}
         </View>
         <View style={styles.amountContainer}>
           <Text style={[styles.amount, { color: isIngreso ? '#2ECC71' : '#FF5252' }]}>
-            {isIngreso ? '+' : '-'}${item.amount.toFixed(2)}
+            {isIngreso ? '+' : '-'}${amountInUSD.toFixed(2)}
           </Text>
           <Text style={styles.accName}>{item.account_name}</Text>
         </View>
@@ -284,6 +284,7 @@ const styles = StyleSheet.create({
   catName: { fontSize: 16, fontWeight: 'bold', color: '#333' },
   date: { fontSize: 12, color: '#999' },
   desc: { fontSize: 12, color: '#666', fontStyle: 'italic' },
+  txRateInfo: { fontSize: 10, color: '#999', marginTop: 2 },
   amountContainer: { alignItems: 'flex-end' },
   amount: { fontSize: 16, fontWeight: 'bold' },
   accName: { fontSize: 11, color: '#999' },

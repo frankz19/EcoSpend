@@ -1,7 +1,6 @@
 // src/data/database/schema.ts
 
 export const createTablesQuery = `
--- Habilitar claves foráneas para integridad referencial
 PRAGMA foreign_keys = ON;
 
 -- 1. TABLA DE USUARIOS
@@ -19,7 +18,7 @@ CREATE TABLE IF NOT EXISTS Accounts (
     user_id INTEGER NOT NULL,
     name TEXT NOT NULL,
     type TEXT CHECK(type IN ('Efectivo', 'Banco', 'Tarjeta', 'Otro')) NOT NULL,
-    current_balance REAL DEFAULT 0.0 CHECK(current_balance >= 0), -- Evita saldos negativos por error
+    current_balance REAL DEFAULT 0.0 CHECK(current_balance >= 0), 
     currency TEXT DEFAULT 'USD',
     FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
 );
@@ -42,6 +41,7 @@ CREATE TABLE IF NOT EXISTS Transactions (
     account_id INTEGER NOT NULL,
     category_id INTEGER NOT NULL,
     amount REAL NOT NULL CHECK(amount > 0),
+    exchange_rate REAL DEFAULT 1.0,
     description TEXT,
     date DATETIME NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -58,23 +58,15 @@ CREATE TABLE IF NOT EXISTS Reminders (
     due_date DATETIME NOT NULL,
     is_paid INTEGER DEFAULT 0 CHECK(is_paid IN (0, 1)),
     notification_id TEXT,
+    recurrence TEXT DEFAULT 'none', -- NUEVO: none, daily, weekly, monthly, yearly
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
 );
 
--- 6. ÍNDICES DE RENDIMIENTO (Optimización para consultas rápidas)
--- Optimiza la búsqueda de movimientos por fecha (Pantalla Historial)
+-- 6. ÍNDICES DE RENDIMIENTO
 CREATE INDEX IF NOT EXISTS idx_transaction_date ON Transactions(date);
-
--- Optimiza el filtrado por categoría (Gráficos de Torta de Gastos/Ingresos)
 CREATE INDEX IF NOT EXISTS idx_transaction_category ON Transactions(category_id);
-
--- Optimiza la carga de transacciones por cuenta específica
 CREATE INDEX IF NOT EXISTS idx_transaction_account ON Transactions(account_id);
-
--- Optimiza la búsqueda de cuentas por usuario
 CREATE INDEX IF NOT EXISTS idx_account_user ON Accounts(user_id);
-
--- Optimiza la carga de recordatorios pendientes por usuario
 CREATE INDEX IF NOT EXISTS idx_reminder_user_due ON Reminders(user_id, due_date);
 `;

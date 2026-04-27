@@ -8,6 +8,7 @@ export interface TransactionWithDetails {
     account_id: number;
     category_id: number;
     amount: number;
+    exchange_rate: number;
     description: string;
     date: string;
     created_at: string;
@@ -26,11 +27,11 @@ export interface DashboardSummary {
 }
 
 export const TransactionService = {
-
     createTransaction: async (
         accountId: number,
         categoryId: number,
         amount: number,
+        exchangeRate: number,
         description: string,
         date: string
     ): Promise<{ success: boolean; warning?: string; error?: string }> => {
@@ -44,7 +45,7 @@ export const TransactionService = {
                 const cat = await db.getFirstAsync<{ type: string, limit_amount: number, name: string }>(
                     'SELECT type, limit_amount, name FROM Categories WHERE id = ?', [categoryId]
                 );
-                if (!cat) throw new Error('Categoría no encontrada');
+                if (!cat) throw new Error('CAT_NOT_FOUND');
 
                 if (cat.type === 'Gasto') {
                     const account = await db.getFirstAsync<{ current_balance: number }>(
@@ -56,7 +57,7 @@ export const TransactionService = {
 
                     if (cat.limit_amount > 0) {
                         const monthlySpentRow = await db.getFirstAsync<{ total: number }>(
-                            `SELECT COALESCE(SUM(amount), 0) AS total 
+                            `SELECT COALESCE(SUM(amount / exchange_rate), 0) AS total 
                              FROM Transactions 
                              WHERE category_id = ? 
                              AND strftime('%Y-%m', date) = strftime('%Y-%m', ?)`,
@@ -64,17 +65,18 @@ export const TransactionService = {
                         );
 
                         const totalSoFar = monthlySpentRow?.total || 0;
-                        const totalWithNew = totalSoFar + amount;
+                        const amountInUSD = amount / exchangeRate;
+                        const totalWithNew = totalSoFar + amountInUSD;
 
                         if (totalWithNew > cat.limit_amount) {
-                            warningMessage = `Has excedido el límite de $${cat.limit_amount} para la categoría ${cat.name}. (Gasto total mes: $${totalWithNew.toFixed(2)})`;
+                            warningMessage = `Has excedido el limite de $${cat.limit_amount} para la categoria ${cat.name}. (Gasto total mes: $${totalWithNew.toFixed(2)})`;
                         }
                     }
                 }
 
                 await db.runAsync(
-                    'INSERT INTO Transactions (account_id, category_id, amount, description, date) VALUES (?, ?, ?, ?, ?)',
-                    [accountId, categoryId, amount, description, date]
+                    'INSERT INTO Transactions (account_id, category_id, amount, exchange_rate, description, date) VALUES (?, ?, ?, ?, ?, ?)',
+                    [accountId, categoryId, amount, exchangeRate, description, date]
                 );
 
                 const balanceChange = cat.type === 'Ingreso' ? amount : -amount;
@@ -84,26 +86,20 @@ export const TransactionService = {
                 );
             });
 
-            return { 
-                success: true, 
-                warning: warningMessage 
-            };
-
+            return { success: true, warning: warningMessage };
         } catch (error: any) {
             if (error?.message === 'SALDO_INSUFICIENTE') {
                 return { success: false, error: 'Saldo insuficiente en la cuenta seleccionada.' };
             }
-            console.error('Error al crear transacción:', error);
-            return { success: false, error: 'No se pudo guardar la transacción.' };
+            return { success: false, error: 'No se pudo guardar la transaccion.' };
         }
     },
-
 
     getTransactions: async (userId: number, limit = 100): Promise<TransactionWithDetails[]> => {
         try {
             return await db.getAllAsync<TransactionWithDetails>(
                 `SELECT
-                    t.id, t.account_id, t.category_id, t.amount, t.description, t.date, t.created_at,
+                    t.id, t.account_id, t.category_id, t.amount, t.exchange_rate, t.description, t.date, t.created_at,
                     c.name     AS category_name,
                     c.icon     AS category_icon,
                     c.color    AS category_color,
@@ -119,21 +115,14 @@ export const TransactionService = {
                 [userId, limit]
             );
         } catch (error) {
-            console.error('Error al obtener transacciones:', error);
             return [];
         }
     },
 
-
     getDashboardSummary: async (userId: number): Promise<DashboardSummary> => {
         try {
-            const balanceRow = await db.getFirstAsync<{ total: number }>(
-                'SELECT COALESCE(SUM(current_balance), 0) AS total FROM Accounts WHERE user_id = ?',
-                [userId]
-            );
-
             const incomeRow = await db.getFirstAsync<{ total: number }>(
-                `SELECT COALESCE(SUM(t.amount), 0) AS total
+                `SELECT COALESCE(SUM(t.amount / t.exchange_rate), 0) AS total
                 FROM Transactions t
                 JOIN Categories c ON t.category_id = c.id
                 JOIN Accounts   a ON t.account_id  = a.id
@@ -143,7 +132,7 @@ export const TransactionService = {
             );
 
             const expensesRow = await db.getFirstAsync<{ total: number }>(
-                `SELECT COALESCE(SUM(t.amount), 0) AS total
+                `SELECT COALESCE(SUM(t.amount / t.exchange_rate), 0) AS total
                 FROM Transactions t
                 JOIN Categories c ON t.category_id = c.id
                 JOIN Accounts   a ON t.account_id  = a.id
@@ -153,16 +142,14 @@ export const TransactionService = {
             );
 
             return {
-                totalBalance:    balanceRow?.total    ?? 0,
+                totalBalance: 0, 
                 monthlyIncome:   incomeRow?.total     ?? 0,
                 monthlyExpenses: expensesRow?.total   ?? 0,
             };
         } catch (error) {
-            console.error('Error al obtener resumen:', error);
             return { totalBalance: 0, monthlyIncome: 0, monthlyExpenses: 0 };
         }
     },
-
 
     deleteTransaction: async (transactionId: number) => {
         try {
@@ -175,7 +162,7 @@ export const TransactionService = {
                     [transactionId]
                 );
 
-                if (!tx) throw new Error('Transacción no encontrada');
+                if (!tx) throw new Error('TX_NOT_FOUND');
 
                 const adjustment = tx.type === 'Gasto' ? tx.amount : -tx.amount;
 
@@ -189,13 +176,11 @@ export const TransactionService = {
 
             return { success: true };
         } catch (error) {
-            console.error('Error al eliminar:', error);
-            return { success: false, error: 'No se pudo eliminar la transacción' };
+            return { success: false, error: 'No se pudo eliminar la transaccion' };
         }
     },
 
-
-    updateTransaction: async (id: number, newData: { amount: number, category_id: number, account_id:number, description: string, date: string }) => {
+    updateTransaction: async (id: number, newData: { amount: number, exchange_rate: number, category_id: number, account_id:number, description: string, date: string }) => {
         const validation = Validators.validateTransactionForm(newData.amount, new Date(newData.date), newData.description);
         if (!validation.isValid) return { success: false, error: validation.errorMessage };
 
@@ -209,7 +194,7 @@ export const TransactionService = {
                     [id]
                 );
 
-                if (!oldTx) throw new Error('Transacción original no encontrada');
+                if (!oldTx) throw new Error('TX_NOT_FOUND');
 
                 const revertAdjustment = oldTx.type === 'Gasto' ? oldTx.amount : -oldTx.amount;
 
@@ -225,18 +210,16 @@ export const TransactionService = {
                 );
 
                 await db.runAsync(
-                    `UPDATE Transactions SET amount = ?, category_id = ?, account_id = ?, description = ?, date = ? WHERE id = ?`,
-                    [newData.amount, newData.category_id, newData.account_id, newData.description, newData.date, id]
+                    `UPDATE Transactions SET amount = ?, exchange_rate = ?, category_id = ?, account_id = ?, description = ?, date = ? WHERE id = ?`,
+                    [newData.amount, newData.exchange_rate, newData.category_id, newData.account_id, newData.description, newData.date, id]
                 );
             });
 
             return { success: true };
         } catch (error) {
-            console.error('Error al actualizar:', error);
-            return { success: false, error: 'Error al actualizar la transacción' };
+            return { success: false, error: 'Error al actualizar la transaccion' };
         }
     },
-    
 
     getFilteredTransactions: async (
         userId: number, 
@@ -252,7 +235,7 @@ export const TransactionService = {
         try {
             let query = `
                 SELECT
-                    t.id, t.account_id, t.category_id, t.amount, t.description, t.date, t.created_at,
+                    t.id, t.account_id, t.category_id, t.amount, t.exchange_rate, t.description, t.date, t.created_at,
                     c.name     AS category_name,
                     c.icon     AS category_icon,
                     c.color    AS category_color,
@@ -267,38 +250,31 @@ export const TransactionService = {
             
             const params: any[] = [userId];
 
-            // Filtro por tipo (Ingreso/Gasto)
             if (filters.type) {
                 query += ` AND c.type = ?`;
                 params.push(filters.type);
             }
 
-            // Filtro por Cuenta específica
             if (filters.accountId) {
                 query += ` AND t.account_id = ?`;
                 params.push(filters.accountId);
             }
 
-            // Filtro por Categoría específica
             if (filters.categoryId) {
                 query += ` AND t.category_id = ?`;
                 params.push(filters.categoryId);
             }
 
-            // Búsqueda por descripción
             if (filters.search) {
                 query += ` AND (t.description LIKE ? OR c.name LIKE ?)`;
                 params.push(`%${filters.search}%`, `%${filters.search}%`);
             }
 
-
             query += ` ORDER BY t.date DESC, t.created_at DESC`;
 
             return await db.getAllAsync<TransactionWithDetails>(query, params);
         } catch (error) {
-            console.error('Error en búsqueda avanzada:', error);
             return [];
         }
     },
-    
 };

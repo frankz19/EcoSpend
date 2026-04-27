@@ -2,11 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { TransactionService } from '../../services/transactionService';
+import { TransactionService, TransactionWithDetails } from '../../services/transactionService';
 import { AccountService, Account } from '../../services/accountService';
 import { CategoryService, Category } from '../../services/categoryService';
-import { TransactionWithDetails } from '../../services/transactionService';
-
 
 interface Props {
   userId: number;
@@ -14,15 +12,10 @@ interface Props {
   transaction?: TransactionWithDetails;
 }
 
-interface TransactionResponse {
-  success: boolean;
-  warning?: string;
-  error?: string;
-}
-
 const TransactionFormScreen = ({ userId, onBack, transaction}: Props) => {
   const [type, setType] = useState<'Gasto' | 'Ingreso'>('Gasto');
   const [amount, setAmount] = useState('');
+  const [exchangeRate, setExchangeRate] = useState('');
   const [description, setDescription] = useState('');
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -33,6 +26,7 @@ const TransactionFormScreen = ({ userId, onBack, transaction}: Props) => {
   useEffect(() => {
     if (transaction) {
       setAmount(transaction.amount.toString());
+      setExchangeRate(transaction.exchange_rate ? transaction.exchange_rate.toString() : '1');
       setDescription(transaction.description || '');
       setType(transaction.category_type);
       setSelectedAcc(transaction.account_id);
@@ -48,11 +42,11 @@ const TransactionFormScreen = ({ userId, onBack, transaction}: Props) => {
       ]);
       setAccounts(accList);
       setCategories(catList);
-      if (accList.length > 0) setSelectedAcc(accList[0].id);
+      if (accList.length > 0 && !transaction) setSelectedAcc(accList[0].id);
       setLoading(false);
     };
     loadData();
-  }, [userId]);
+  }, [userId, transaction]);
 
   const handleSave = async () => {
     if (!amount || !selectedAcc || !selectedCat) {
@@ -61,25 +55,38 @@ const TransactionFormScreen = ({ userId, onBack, transaction}: Props) => {
     }
 
     const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      Alert.alert('Error', 'Introduce un monto valido');
+      return;
+    }
+
+    const acc = accounts.find(a => a.id === selectedAcc);
+    let finalRate = 1.0;
+    
+    if (acc && acc.currency === 'VES') {
+        finalRate = parseFloat(exchangeRate);
+        if (isNaN(finalRate) || finalRate <= 0) {
+            Alert.alert('Error', 'Introduce una tasa de cambio valida para Bolivares');
+            return;
+        }
+    }
+
     const data = {
       amount: parsedAmount,
+      exchange_rate: finalRate,
       account_id: selectedAcc,
       category_id: selectedCat,
       description,
       date: transaction?.date || new Date().toISOString(),
     };
-    let res: TransactionResponse;
 
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      Alert.alert('Error', 'Introduce un monto válido');
-      return;
-    }
+    let res;
 
     if (transaction) {
       res = await TransactionService.updateTransaction(transaction.id, data);
     } else {
       res = await TransactionService.createTransaction(
-        data.account_id, data.category_id, data.amount, data.description, data.date
+        data.account_id, data.category_id, data.amount, data.exchange_rate, data.description, data.date
       );
     }
 
@@ -90,11 +97,13 @@ const TransactionFormScreen = ({ userId, onBack, transaction}: Props) => {
         onBack();
       }
     } else {
-      Alert.alert('Error', res.error || 'No se pudo guardar la operación');
+      Alert.alert('Error', res.error || 'No se pudo guardar la operacion');
     }
   };
 
   const filteredCats = categories.filter(c => c.type === type && c.name !== 'Saldo Inicial');
+  const selectedAccountObj = accounts.find(a => a.id === selectedAcc);
+  const isVES = selectedAccountObj?.currency === 'VES';
 
   if (loading) return <ActivityIndicator style={{ flex: 1 }} />;
 
@@ -103,7 +112,7 @@ const TransactionFormScreen = ({ userId, onBack, transaction}: Props) => {
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack}><Text style={styles.backIcon}>‹</Text></TouchableOpacity>
         <Text style={styles.title}>
-          {transaction ? 'Editar Operación' : 'Nueva Operación'}
+          {transaction ? 'Editar Operacion' : 'Nueva Operacion'}
         </Text>
         <View style={{ width: 40 }} />
       </View>
@@ -119,6 +128,13 @@ const TransactionFormScreen = ({ userId, onBack, transaction}: Props) => {
         </View>
 
         <TextInput style={styles.amountInput} placeholder="0.00" keyboardType="numeric" value={amount} onChangeText={setAmount} />
+
+        {isVES && (
+            <View style={styles.rateContainer}>
+                <Text style={styles.label}>Tasa de cambio (Bs/$)</Text>
+                <TextInput style={styles.inputRate} placeholder="Ej: 36.50" keyboardType="numeric" value={exchangeRate} onChangeText={setExchangeRate} />
+            </View>
+        )}
 
         <Text style={styles.label}>Cuenta</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
@@ -164,6 +180,8 @@ const styles = StyleSheet.create({
   activeIngreso: { backgroundColor: '#2ECC71' },
   whiteText: { color: '#FFF', fontWeight: 'bold' },
   amountInput: { fontSize: 45, fontWeight: 'bold', textAlign: 'center', marginVertical: 20 },
+  rateContainer: { marginBottom: 15 },
+  inputRate: { borderBottomWidth: 1, borderColor: '#EEE', padding: 10, fontSize: 16 },
   label: { fontSize: 14, color: '#666', marginBottom: 10, marginTop: 10 },
   chipRow: { flexDirection: 'row', marginBottom: 15 },
   chip: { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#F0F0F0', borderRadius: 20, marginRight: 10 },

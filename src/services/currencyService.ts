@@ -1,148 +1,55 @@
 import { Currency } from './accountService';
 
-// ---------------------------------------------------------------------------
-// Tipos
-// ---------------------------------------------------------------------------
-
-export type ExchangeRateSource = 'manual' | 'bcv' | 'paralelo';
-
 export interface ExchangeRate {
-  from: Currency;
-  to: Currency;
-  rate: number;          // cuántas unidades de `to` equivalen a 1 unidad de `from`
-  source: ExchangeRateSource;
-  fetchedAt: string;     // ISO timestamp
+  rate: number;
+  fetchedAt: string;
 }
 
-export interface ConversionResult {
-  originalAmount: number;
-  originalCurrency: Currency;
-  convertedAmount: number;
-  targetCurrency: Currency;
-  rateUsed: number;
-  source: ExchangeRateSource;
-}
-
-// ---------------------------------------------------------------------------
-// Tasa en memoria (fallback manual)
-// ---------------------------------------------------------------------------
-
-let _currentRate: ExchangeRate = {
-  from: 'USD',
-  to: 'VES',
-  rate: 1,               // valor 1 como placeholder — debe actualizarse antes de usar
-  source: 'manual',
-  fetchedAt: new Date().toISOString(),
+let _globalRates: Record<string, number> = {
+  'VES': 1,
+  'COP': 1,
+  'EUR': 1
 };
 
-// ---------------------------------------------------------------------------
-// Gestión de tasas
-// ---------------------------------------------------------------------------
-
 export const CurrencyService = {
-
-  /** Devuelve la tasa activa en memoria (USD → VES). */
-  getCurrentRate(): ExchangeRate {
-    return { ..._currentRate };
+  getRate(currency: string): number {
+    return _globalRates[currency] || 1;
   },
 
-  /** Establece una tasa manualmente (ej. el usuario ingresa el valor del día). */
-  setManualRate(usdToVes: number): ExchangeRate {
-    _currentRate = {
-      from: 'USD',
-      to: 'VES',
-      rate: usdToVes,
-      source: 'manual',
-      fetchedAt: new Date().toISOString(),
-    };
-    return { ..._currentRate };
+  setRate(currency: string, rate: number): void {
+    _globalRates[currency] = rate;
   },
 
-  /**
-   * PENDIENTE — Obtener tasa oficial del BCV (Banco Central de Venezuela).
-   * Endpoint sugerido: https://ve.dolarapi.com/v1/dolares/oficial
-   */
-  async fetchBCVRate(): Promise<ExchangeRate | null> {
-    // TODO: implementar fetch al endpoint del BCV o servicio intermediario
-    return null;
-  },
-
-  /**
-   * PENDIENTE — Obtener tasa del dólar paralelo/monitor dólar.
-   * Endpoint sugerido: https://ve.dolarapi.com/v1/dolares/paralelo
-   */
-  async fetchParaleloRate(): Promise<ExchangeRate | null> {
-    // TODO: implementar fetch a endpoint de tasa paralela
-    return null;
-  },
-
-  // ---------------------------------------------------------------------------
-  // Conversión
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Convierte un monto entre dos monedas usando la tasa en memoria.
-   * Si from === to devuelve el monto sin cambios.
-   */
-  convert(amount: number, from: Currency, to: Currency): ConversionResult {
-    if (from === to) {
-      return {
-        originalAmount: amount,
-        originalCurrency: from,
-        convertedAmount: amount,
-        targetCurrency: to,
-        rateUsed: 1,
-        source: 'manual',
-      };
+  convert(amount: number, from: Currency, to: Currency, historicalRate?: number): number {
+    if (from === to) return amount;
+    
+    if (from !== 'USD' && to === 'USD') {
+        const rate = historicalRate || this.getRate(from);
+        return parseFloat((amount / rate).toFixed(2));
     }
 
-    const rate = _resolveRate(from, to);
+    if (from === 'USD' && to !== 'USD') {
+        const rate = this.getRate(to);
+        return parseFloat((amount * rate).toFixed(2));
+    }
 
-    return {
-      originalAmount: amount,
-      originalCurrency: from,
-      convertedAmount: parseFloat((amount * rate.rate).toFixed(2)),
-      targetCurrency: to,
-      rateUsed: rate.rate,
-      source: rate.source,
-    };
+    return amount;
   },
 
-  /**
-   * Convierte una lista de montos a una moneda destino común.
-   * Útil para reportes que agrupan cuentas de distintas monedas.
-   */
-  normalizeAmounts(
-    entries: { amount: number; currency: Currency }[],
-    targetCurrency: Currency
-  ): number {
+  normalizeAmounts(entries: { amount: number; currency: Currency }[], targetCurrency: Currency): number {
     return entries.reduce((sum, e) => {
-      const result = CurrencyService.convert(e.amount, e.currency, targetCurrency);
-      return sum + result.convertedAmount;
+      const converted = this.convert(e.amount, e.currency, targetCurrency);
+      return sum + converted;
     }, 0);
   },
 
-  /** Devuelve el símbolo de display para una moneda. */
   symbol(currency: Currency): string {
-    return currency === 'VES' ? 'Bs.' : '$';
-  },
-};
-
-// ---------------------------------------------------------------------------
-// Helper interno
-// ---------------------------------------------------------------------------
-
-function _resolveRate(from: Currency, to: Currency): ExchangeRate {
-  if (from === 'USD' && to === 'VES') return _currentRate;
-
-  if (from === 'VES' && to === 'USD') {
-    return {
-      ..._currentRate,
-      from: 'VES',
-      to: 'USD',
-      rate: _currentRate.rate > 0 ? 1 / _currentRate.rate : 0,
+    const symbols: Record<string, string> = {
+        'USD': '$',
+        'VES': 'Bs.',
+        'COP': 'COP$',
+        'EUR': '€'
     };
+    return symbols[currency] || '$';
   }
-
-  return { from, to, rate: 1, source: 'manual', fetchedAt: new Date().toISOString() };
-}
+};

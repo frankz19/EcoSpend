@@ -4,7 +4,7 @@ import { CategoryService } from './categoryService';
 
 const db = getDatabase();
 
-export type Currency = 'USD' | 'VES';
+export type Currency = 'USD' | 'VES' | 'COP' | 'EUR';
 
 export interface Account {
   id: number;
@@ -24,7 +24,7 @@ export const AccountService = {
     );
   },
 
-  async createAccount(userId: number, name: string, type: string, initialBalance: number, currency: Currency = 'USD') {
+  async createAccount(userId: number, name: string, type: string, initialBalance: number, currency: Currency = 'USD', initialExchangeRate: number = 1.0) {
     const db = getDatabase();
     const result = await db.runAsync(
       'INSERT INTO Accounts (user_id, name, type, current_balance, currency) VALUES (?, ?, ?, ?, ?)',
@@ -46,6 +46,7 @@ export const AccountService = {
           newAccountId,
           cat.id,
           Math.abs(initialBalance), 
+          initialExchangeRate,
           'Saldo inicial de cuenta',
           new Date().toISOString()
         );
@@ -76,5 +77,4 @@ export const AccountService = {
       return { success: false, error: 'Error al eliminar la cuenta' };
     }
   }
-
 };
