@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as SecureStore from 'expo-secure-store';
+import * as LocalAuthentication from 'expo-local-authentication';
+
+// Servicios y Datos
 import { initDatabase } from './src/data/database/database';
 import { NotificationService } from './src/services/notificationService';
 
+// Pantallas
 import WelcomeScreen from './src/screens/WelcomeScreen';
 import LoginScreen from './src/screens/auth/LoginScreen';
 import RegisterScreen from './src/screens/auth/RegisterScreen';
@@ -17,31 +23,102 @@ import ReportsScreen from './src/screens/reports/ReportsScreen';
 import RemindersScreen from './src/screens/reminders/RemindersScreen';
 import AddReminderScreen from './src/screens/reminders/AddReminderScreen';
 import { Category } from './src/services/categoryService';
+import { TransactionWithDetails } from './src/services/transactionService';
+import { Account } from './src/services/accountService';
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState('welcome');
+  const [currentScreen, setCurrentScreen] = useState<'loading' | string>('loading');
   const [userId, setUserId] = useState<number | null>(null);
   const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);
+  const [transactionToEdit, setTransactionToEdit] = useState<TransactionWithDetails | null>(null);
+  const [accountToEdit, setAccountToEdit] = useState<Account | null>(null);
   const [dbReady, setDbReady] = useState(false);
 
   useEffect(() => {
-    initDatabase().then(() => setDbReady(true));
-    NotificationService.requestPermissions(); 
+    const setup = async () => {
+      try {
+        await initDatabase();
+        
+        // Aislamos las notificaciones. Si fallan en el simulador, no romperán el inicio de sesión.
+        try {
+          await NotificationService.requestPermissions();
+        } catch (notifError) {
+          console.warn("Permisos de notificación omitidos", notifError);
+        }
+        
+        const savedSession = await SecureStore.getItemAsync('user_session');
+        
+        if (savedSession) {
+          const { id } = JSON.parse(savedSession);
+          
+          const hasHardware = await LocalAuthentication.hasHardwareAsync();
+          const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+          if (hasHardware && isEnrolled) {
+            const auth = await LocalAuthentication.authenticateAsync({
+              promptMessage: 'Confirma tu identidad',
+              disableDeviceFallback: false,
+            });
+
+            if (auth.success) {
+              setUserId(id);
+              setCurrentScreen('dashboard');
+            } else {
+              // Si el usuario cancela la huella, va a login, pero NO borramos la sesión
+              setCurrentScreen('login');
+            }
+          } else {
+            setUserId(id);
+            setCurrentScreen('dashboard');
+          }
+        } else {
+          setCurrentScreen('welcome');
+        }
+      } catch (error) {
+        // Si hay un error real de deserialización, lo capturamos
+        console.error("Error crítico leyendo sesión:", error);
+        await SecureStore.deleteItemAsync('user_session'); // Limpiamos basura
+        setCurrentScreen('login');
+      } finally {
+        setDbReady(true);
+      }
+    };
+    setup();
   }, []);
 
-  if (!dbReady) return null;
+  // Mientras la DB se inicializa y verificamos seguridad, mostramos un loader
+  if (!dbReady || currentScreen === 'loading') {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF' }}>
+        <ActivityIndicator size="large" color="#6200EE" />
+      </View>
+    );
+  }
 
   const handleLogin = (id: number) => {
     setUserId(id);
     setCurrentScreen('dashboard');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Seguridad: Limpiar token al cerrar sesión
+    await SecureStore.deleteItemAsync('user_session');
     setUserId(null);
     setCurrentScreen('login');
   };
 
   const renderScreen = () => {
+    // Protección de rutas: Si la pantalla requiere auth y no hay userId, mandar a login
+    const screensRequiringAuth = [
+      'dashboard', 'transaction_form', 'history', 'accounts', 
+      'add_account', 'categories', 'add_category', 'reports', 
+      'reminders', 'add_reminder'
+    ];
+
+    if (screensRequiringAuth.includes(currentScreen) && !userId) {
+      return <LoginScreen onLogin={handleLogin} onGoToRegister={() => setCurrentScreen('register')} onBack={() => setCurrentScreen('welcome')} />;
+    }
+
     switch (currentScreen) {
       case 'welcome':
         return <WelcomeScreen onStart={() => setCurrentScreen('login')} />;
@@ -64,13 +141,48 @@ export default function App() {
         );
       case 'transaction_form':
         return <TransactionFormScreen userId={userId!} onBack={() => setCurrentScreen('dashboard')} />;
-      case 'history':
-        return <HistoryScreen userId={userId!} onBack={() => setCurrentScreen('dashboard')} onEdit={() => {}} />;
-      case 'accounts':
-        return <AccountsScreen userId={userId!} onAdd={() => setCurrentScreen('add_account')} onBack={() => setCurrentScreen('dashboard')} />;
-      case 'add_account':
-        return <AddAccountScreen userId={userId!} onBack={() => setCurrentScreen('accounts')} />;
-      case 'categories':
+        case 'history':
+          return (
+            <HistoryScreen 
+              userId={userId!} 
+              onBack={() => setCurrentScreen('dashboard')} 
+              onEdit={(tx) => { 
+                setTransactionToEdit(tx); 
+                setCurrentScreen('add_transaction'); 
+              }} 
+            />
+          );
+        
+        case 'add_transaction':
+          return (
+            <TransactionFormScreen 
+              userId={userId!} 
+              transaction={transactionToEdit || undefined} 
+              onBack={() => {
+                setTransactionToEdit(null); 
+                setCurrentScreen('history');
+              }} 
+            />
+          );
+        case 'accounts':
+          return (
+            <AccountsScreen 
+                userId={userId!} 
+                onAdd={() => { setAccountToEdit(null); setCurrentScreen('add_account'); }} 
+                onEdit={(acc) => { setAccountToEdit(acc); setCurrentScreen('add_account'); }}
+                onBack={() => setCurrentScreen('dashboard')} 
+            />
+          );
+      
+        case 'add_account':
+          return (
+            <AddAccountScreen 
+                userId={userId!} 
+                account={accountToEdit || undefined} 
+                onBack={() => { setAccountToEdit(null); setCurrentScreen('accounts'); }} 
+            />
+        );
+        case 'categories':
         return (
           <CategoriesScreen 
             userId={userId!} 

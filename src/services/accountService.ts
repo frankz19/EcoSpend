@@ -2,6 +2,8 @@ import { getDatabase } from '../data/database/database';
 import { TransactionService } from './transactionService';
 import { CategoryService } from './categoryService';
 
+const db = getDatabase();
+
 export type Currency = 'USD' | 'VES';
 
 export interface Account {
@@ -50,5 +52,29 @@ export const AccountService = {
       }
     }
     return result;
+  },
+
+  updateAccount: async (id: number, newName: string) => {
+    try {
+      await db.runAsync(
+        'UPDATE Accounts SET name = ? WHERE id = ?',
+        [newName, id]
+      );
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: 'No se pudo renombrar la cuenta' };
+    }
+  },
+
+  deleteAccount: async (id: number) => {
+    try {
+      await db.withTransactionAsync(async () => {
+        await db.runAsync('DELETE FROM Accounts WHERE id = ?', [id]);
+      });
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: 'Error al eliminar la cuenta' };
+    }
   }
+
 };

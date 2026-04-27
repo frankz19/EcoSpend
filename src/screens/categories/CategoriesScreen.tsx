@@ -24,6 +24,15 @@ const CategoriesScreen = ({ userId, onAdd, onEdit, onBack }: Props) => {
   }, [userId]);
 
   const handleCategoryPress = (category: Category) => {
+    if(category.name == 'Saldo Inicial')
+    {
+      Alert.alert(
+        'Categoría Protegida',
+        'Esta categoría es del sistema y no puede ser modificada'
+      );
+      return;
+    }
+
     Alert.alert(
       'Opciones de Categoría',
       `¿Qué deseas hacer con "${category.name}"?`,

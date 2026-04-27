@@ -5,10 +5,13 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { TransactionService } from '../../services/transactionService';
 import { AccountService, Account } from '../../services/accountService';
 import { CategoryService, Category } from '../../services/categoryService';
+import { TransactionWithDetails } from '../../services/transactionService';
+
 
 interface Props {
   userId: number;
   onBack: () => void;
+  transaction?: TransactionWithDetails;
 }
 
 interface TransactionResponse {
@@ -17,7 +20,7 @@ interface TransactionResponse {
   error?: string;
 }
 
-const TransactionFormScreen = ({ userId, onBack }: Props) => {
+const TransactionFormScreen = ({ userId, onBack, transaction}: Props) => {
   const [type, setType] = useState<'Gasto' | 'Ingreso'>('Gasto');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -26,6 +29,16 @@ const TransactionFormScreen = ({ userId, onBack }: Props) => {
   const [selectedAcc, setSelectedAcc] = useState<number | null>(null);
   const [selectedCat, setSelectedCat] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (transaction) {
+      setAmount(transaction.amount.toString());
+      setDescription(transaction.description || '');
+      setType(transaction.category_type);
+      setSelectedAcc(transaction.account_id);
+      setSelectedCat(transaction.category_id);
+    }
+  }, [transaction]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -48,14 +61,27 @@ const TransactionFormScreen = ({ userId, onBack }: Props) => {
     }
 
     const parsedAmount = parseFloat(amount);
+    const data = {
+      amount: parsedAmount,
+      account_id: selectedAcc,
+      category_id: selectedCat,
+      description,
+      date: transaction?.date || new Date().toISOString(),
+    };
+    let res: TransactionResponse;
+
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       Alert.alert('Error', 'Introduce un monto válido');
       return;
     }
 
-    const res = await TransactionService.createTransaction(
-      selectedAcc, selectedCat, parsedAmount, description, new Date().toISOString()
-    ) as TransactionResponse;
+    if (transaction) {
+      res = await TransactionService.updateTransaction(transaction.id, data);
+    } else {
+      res = await TransactionService.createTransaction(
+        data.account_id, data.category_id, data.amount, data.description, data.date
+      );
+    }
 
     if (res.success) {
       if (res.warning) {
@@ -68,7 +94,7 @@ const TransactionFormScreen = ({ userId, onBack }: Props) => {
     }
   };
 
-  const filteredCats = categories.filter(c => c.type === type);
+  const filteredCats = categories.filter(c => c.type === type && c.name !== 'Saldo Inicial');
 
   if (loading) return <ActivityIndicator style={{ flex: 1 }} />;
 
@@ -76,7 +102,9 @@ const TransactionFormScreen = ({ userId, onBack }: Props) => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack}><Text style={styles.backIcon}>‹</Text></TouchableOpacity>
-        <Text style={styles.title}>Nueva Operacion</Text>
+        <Text style={styles.title}>
+          {transaction ? 'Editar Operación' : 'Nueva Operación'}
+        </Text>
         <View style={{ width: 40 }} />
       </View>
 
