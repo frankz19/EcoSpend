@@ -1,125 +1,137 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Alert 
-} from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getDatabase } from '../../data/database/database';
-
-interface UserRow {
-  id: number;
-  username: string;
-  email: string;
-}
+import * as LocalAuthentication from 'expo-local-authentication';
+import * as SecureStore from 'expo-secure-store';
+import { AuthService } from '../../services/authService';
+import { Validators } from '../../utils/validators';
 
 interface Props {
-  onNavigateToRegister: () => void;
+  onGoToRegister: () => void;
   onBack: () => void;
-  onLoginSuccess?: () => void;
+  onLogin: (userId: number) => void;
 }
 
-const LoginScreen = ({ onNavigateToRegister, onBack, onLoginSuccess }: Props) => {
+const LoginScreen = ({ onGoToRegister, onBack, onLogin }: Props) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isBiometricAvailable, setIsBiometricAvailable] = useState(false);
 
-  const handleLogin = () => {
-    const db = getDatabase();
-    if (!email || !password) {
-      Alert.alert('Error', 'Por favor, completa todos los campos');
-      return;
+  // Verificar compatibilidad biométrica al cargar la pantalla
+  useEffect(() => {
+    (async () => {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+      setIsBiometricAvailable(hasHardware && isEnrolled);
+    })();
+  }, []);
+
+  const handleLogin = async () => {
+    const cleanEmail = Validators.sanitizeText(email);
+
+    if (!cleanEmail || !password) {
+      return Alert.alert('Error', 'Completa los campos');
     }
-    try {
-      const user = db.getFirstSync<UserRow>(
-        'SELECT id, username, email FROM Users WHERE email = ? AND password = ?',
-        [email, password]
-      );
-      if (user) {
-        Alert.alert('¡Bienvenido!', `Hola de nuevo, ${user.username}`, [
-          { text: 'Continuar', onPress: () => onLoginSuccess?.() }
-        ]);
+
+    const result = await AuthService.login(cleanEmail, password);
+    
+    if (result.success && result.user) {
+      const userData = JSON.stringify({ id: result.user.id });
+      
+      // Guardamos la sesión activa (para el auto-login)
+      await SecureStore.setItemAsync('user_session', userData);
+      // Guardamos un "recuerdo permanente" para el botón biométrico
+      await SecureStore.setItemAsync('last_biometric_user', userData);
+      
+      onLogin(result.user.id);
+    } else {
+      Alert.alert('Error', result.error || 'Credenciales incorrectas');
+    }
+  };
+
+  const handleBiometricLogin = async () => {
+    const result = await LocalAuthentication.authenticateAsync({
+      promptMessage: 'Accede a EcoSpend',
+      cancelLabel: 'Cancelar',
+      disableDeviceFallback: false,
+    });
+
+    if (result.success) {
+      // BUSCAMOS EL RECUERDO PERMANENTE, no la sesión que se borró al hacer logout
+      const savedBiometricUser = await SecureStore.getItemAsync('last_biometric_user');
+      
+      if (savedBiometricUser) {
+        // Restauramos la sesión activa para que el resto de la app funcione
+        await SecureStore.setItemAsync('user_session', savedBiometricUser);
+        const { id } = JSON.parse(savedBiometricUser);
+        onLogin(id);
       } else {
-        Alert.alert('Error', 'Correo o contraseña incorrectos');
+        Alert.alert(
+          'Acceso Requerido', 
+          'Inicia sesión con tu contraseña una vez para activar la biometría.'
+        );
       }
-    } catch (error) {
-      Alert.alert('Error', 'Problema al conectar con la base de datos');
     }
   };
 
   return (
-    <SafeAreaView style={styles.mainContainer} edges={['bottom']}> 
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
+        <TouchableOpacity onPress={onBack}>
           <Text style={styles.backIcon}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Inicio de sesión</Text>
+        <Text style={styles.title}>Login</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <View style={styles.contentContainer}>
-        <Text style={styles.welcomeTitle}>Bienvenido de nuevo</Text>
-        <Text style={styles.welcomeSubtitle}>Ingresa a tu cuenta para gestionar tus movimientos</Text>
+      <View style={styles.content}>
+        <TextInput 
+          style={styles.input} 
+          placeholder="Email" 
+          value={email} 
+          onChangeText={setEmail} 
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+        <TextInput 
+          style={styles.input} 
+          placeholder="Password" 
+          value={password} 
+          onChangeText={setPassword} 
+          secureTextEntry 
+        />
 
-        <View style={styles.form}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Correo</Text>
-            <TextInput 
-              style={styles.input} 
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              placeholder="ejemplo@correo.com"
-            />
-          </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Contraseña</Text>
-            <TextInput 
-              style={styles.input} 
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry 
-              placeholder="••••••••"
-            />
-          </View>
-        </View>
-
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonText}>Acceder</Text>
+        <TouchableOpacity style={styles.btn} onPress={handleLogin}>
+          <Text style={styles.btnText}>Entrar</Text>
         </TouchableOpacity>
-        
-        <View style={styles.registerContainer}>
-          <Text style={styles.noAccountText}>¿No tienes una cuenta? </Text>
-          <TouchableOpacity onPress={onNavigateToRegister}>
-            <Text style={styles.registerLink}>Registrarse</Text>
+
+        {/* Botón Biométrico condicional */}
+        {isBiometricAvailable && (
+          <TouchableOpacity style={styles.biometricBtn} onPress={handleBiometricLogin}>
+            <Text style={styles.biometricText}>🧬 Usar Huella o FaceID</Text>
           </TouchableOpacity>
-        </View>
+        )}
+
+        <TouchableOpacity onPress={onGoToRegister}>
+          <Text style={styles.link}>¿No tienes cuenta? Regístrate</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: '#FFFFFF' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 60, paddingHorizontal: 10 },
-  backButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  backIcon: { fontSize: 35, color: '#000' },
-  headerTitle: { fontSize: 16, fontWeight: '600' },
-  contentContainer: { flex: 1, paddingHorizontal: 25, paddingTop: 40 },
-  welcomeTitle: { fontSize: 28, fontWeight: 'bold', marginBottom: 10 },
-  welcomeSubtitle: { fontSize: 16, color: '#808080', marginBottom: 40 },
-  form: { marginBottom: 15 },
-  inputGroup: { marginBottom: 20 },
-  inputLabel: { fontSize: 16, fontWeight: '500', marginBottom: 8 },
-  input: { height: 55, borderColor: '#C0C0C0', borderWidth: 1, borderRadius: 25, paddingHorizontal: 20 },
-  button: { height: 55, backgroundColor: '#6200EE', borderRadius: 25, alignItems: 'center', justifyContent: 'center', marginBottom: 30 },
-  buttonText: { color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' },
-  registerContainer: { flexDirection: 'row', justifyContent: 'center' },
-  noAccountText: { fontSize: 15 },
-  registerLink: { fontSize: 15, color: '#6200EE', fontWeight: 'bold' }
+  container: { flex: 1, backgroundColor: '#FFF' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 15 },
+  backIcon: { fontSize: 40, color: '#000' },
+  title: { fontSize: 18, fontWeight: 'bold' },
+  content: { padding: 25, gap: 15 },
+  input: { height: 55, borderWidth: 1, borderColor: '#DDD', borderRadius: 25, paddingHorizontal: 20 },
+  btn: { height: 55, backgroundColor: '#6200EE', borderRadius: 25, justifyContent: 'center', alignItems: 'center', marginTop: 10 },
+  btnText: { color: '#FFF', fontWeight: 'bold' },
+  biometricBtn: { height: 55, borderWidth: 1, borderColor: '#6200EE', borderRadius: 25, justifyContent: 'center', alignItems: 'center' },
+  biometricText: { color: '#6200EE', fontWeight: '600' },
+  link: { textAlign: 'center', color: '#6200EE', marginTop: 15 }
 });
 
 export default LoginScreen;

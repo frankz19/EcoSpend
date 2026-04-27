@@ -1,163 +1,298 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  TouchableOpacity 
+  View, Text, StyleSheet, FlatList, TouchableOpacity, 
+  ActivityIndicator, TextInput, Modal, Alert 
 } from 'react-native';
-// Importación moderna para evitar el aviso de "deprecated"
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { TransactionService, TransactionWithDetails } from '../../services/transactionService';
+import { AccountService, Account } from '../../services/accountService';
+import { CategoryService, Category } from '../../services/categoryService';
 
 interface Props {
+  userId: number;
   onBack: () => void;
+  onEdit: (tx: TransactionWithDetails) => void;
 }
 
-const HistoryScreen = ({ onBack }: Props) => {
-  // DATOS MOCK: Historial de transacciones
-  const transactions = [
-    { id: '1', date: 'Hoy', title: 'Mercado Mensual', amount: -150.00, category: 'Comida', icon: '?', color: '#FFEBEE' },
-    { id: '2', date: 'Hoy', title: 'Pago Freelance', amount: 450.00, category: 'Trabajo', icon: '?', color: '#E8F5E9' },
-    { id: '3', date: 'Ayer', title: 'Gasolina', amount: -30.00, category: 'Transporte', icon: '?', color: '#E3F2FD' },
-    { id: '4', date: 'Ayer', title: 'Suscripción Netflix', amount: -12.99, category: 'Entretenimiento', icon: '?', color: '#F3E5F5' },
-    { id: '5', date: '02 Abr', title: 'Cena Cumpleaños', amount: -85.50, category: 'Salidas', icon: '?', color: '#FFF3E0' },
-    { id: '6', date: '01 Abr', title: 'Venta de Ropa', amount: 60.00, category: 'Otros', icon: '?', color: '#F5F5F5' },
-    { id: '7', date: '01 Abr', title: 'Alquiler Apdo', amount: -600.00, category: 'Vivienda', icon: '?', color: '#EFEBE9' },
+const HistoryScreen = ({ userId, onBack, onEdit }: Props) => {
+  const [transactions, setTransactions] = useState<TransactionWithDetails[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+
+  const [searchText, setSearchText] = useState('');
+  const [filterType, setFilterType] = useState<'Todos' | 'Gasto' | 'Ingreso'>('Todos');
+  const [filterAcc, setFilterAcc] = useState<number | null>(null);
+  const [filterCat, setFilterCat] = useState<number | null>(null);
+  
+
+  const [activeDropdown, setActiveDropdown] = useState<'type' | 'acc' | 'cat' | null>(null);
+  
+  const [page, setPage] = useState(0);
+  const itemsPerPage = 20;
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [txs, accs, cats] = await Promise.all([
+        TransactionService.getFilteredTransactions(userId, {}),
+        AccountService.getAccounts(userId),
+        CategoryService.getCategories(userId)
+      ]);
+      setTransactions(txs);
+      setAccounts(accs);
+      setCategories(cats);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    
+    loadData();
+  }, [userId]);
+
+  const handleLongPress = (transaction : TransactionWithDetails) => {
+    Alert.alert(
+      'Opciones de movimiento',
+      `¿Qué deseas hacer con el registro de "${transaction.category_name}"?`,
+      [
+        {
+          text: 'Editar',
+          onPress: () => onEdit(transaction)
+        },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () => confirmDelete(transaction)
+        },
+        {text: 'Cancelar', style: 'cancel'}
+      ]
+    );
+  };
+
+  const confirmDelete = (transaction: TransactionWithDetails) => {
+    Alert.alert(
+      'Eliminar Transacción',
+      '¿Estás seguro? El saldo de la cuenta se ajustará automáticamente.',
+      [
+        {text: 'Cancelar', style: 'cancel'},
+        {
+          text: 'Sí, eliminar',
+          style: 'destructive',
+          onPress: async() => {
+            const res = await TransactionService.deleteTransaction(transaction.id);
+            if(res.success) {
+              loadData();
+            } else {
+              Alert.alert('Error', res.error);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const filteredData = useMemo(() => {
+    return transactions.filter(tx => {
+      const matchSearch = tx.description?.toLowerCase().includes(searchText.toLowerCase()) || 
+                          tx.category_name.toLowerCase().includes(searchText.toLowerCase());
+      const matchType = filterType === 'Todos' || tx.category_type === filterType;
+      const matchAcc = filterAcc === null || tx.account_id === filterAcc;
+      const matchCat = filterCat === null || tx.category_id === filterCat;
+      
+      return matchSearch && matchType && matchAcc && matchCat;
+    });
+  }, [transactions, searchText, filterType, filterAcc, filterCat]);
+
+  const paginatedData = filteredData.slice(page * itemsPerPage, (page + 1) * itemsPerPage);
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+
+
+  const typeOptions = [
+    { label: 'Todos', value: 'Todos' },
+    { label: 'Gasto', value: 'Gasto' },
+    { label: 'Ingreso', value: 'Ingreso' }
+  ];
+  
+  const accOptions = [
+    { label: 'Todas', value: null },
+    ...accounts.map(a => ({ label: a.name, value: a.id }))
+  ];
+  
+  const catOptions = [
+    { label: 'Todas', value: null },
+    ...categories.map(c => ({ label: c.name, value: c.id }))
   ];
 
-  const renderItem = ({ item }: { item: typeof transactions[0] }) => (
-    <View style={styles.card}>
-      <View style={[styles.iconContainer, { backgroundColor: item.color }]}>
-        <Text style={styles.iconText}>{item.icon}</Text>
-      </View>
-      <View style={styles.infoContainer}>
-        <Text style={styles.titleText}>{item.title}</Text>
-        <Text style={styles.subtitleText}>{item.category} • {item.date}</Text>
-      </View>
-      <Text style={[
-        styles.amountText, 
-        { color: item.amount > 0 ? '#2ECC71' : '#1A1A1A' }
-      ]}>
-        {item.amount > 0 ? `+$${item.amount.toFixed(2)}` : `-$${Math.abs(item.amount).toFixed(2)}`}
-      </Text>
-    </View>
-  );
+  const handleSelect = (val: any) => {
+    if (activeDropdown === 'type') setFilterType(val);
+    if (activeDropdown === 'acc') setFilterAcc(val);
+    if (activeDropdown === 'cat') setFilterCat(val);
+    setActiveDropdown(null);
+    setPage(0);
+  };
+
+  const getLabel = (type: 'type' | 'acc' | 'cat') => {
+    if (type === 'type') return filterType;
+    if (type === 'acc') return filterAcc === null ? 'Todas' : accounts.find(a => a.id === filterAcc)?.name || 'Todas';
+    if (type === 'cat') return filterCat === null ? 'Todas' : categories.find(c => c.id === filterCat)?.name || 'Todas';
+    return '';
+  };
+
+  
+
+  const renderDropdownModal = () => {
+    if (!activeDropdown) return null;
+    
+    let options: {label: string, value: any}[] = [];
+    let title = '';
+    
+    if (activeDropdown === 'type') { options = typeOptions; title = 'Seleccionar Tipo'; }
+    if (activeDropdown === 'acc') { options = accOptions; title = 'Seleccionar Cuenta'; }
+    if (activeDropdown === 'cat') { options = catOptions; title = 'Seleccionar Categoria'; }
+
+    return (
+      <Modal visible={true} transparent animationType="fade">
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setActiveDropdown(null)}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{title}</Text>
+            <FlatList
+              data={options}
+              keyExtractor={(item, index) => index.toString()}
+              renderItem={({ item }) => (
+                <TouchableOpacity style={styles.modalOption} onPress={() => handleSelect(item.value)}>
+                  <Text style={styles.modalOptionText}>{item.label}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    );
+  };
+
+  const renderItem = ({ item }: { item: TransactionWithDetails }) => {
+    const isIngreso = item.category_type === 'Ingreso';
+    return (
+      <TouchableOpacity style={styles.card} onLongPress={() => handleLongPress(item)} >
+        <View style={[styles.indicator, { backgroundColor: item.category_color }]} />
+        <View style={styles.info}>
+          <Text style={styles.catName}>{item.category_name}</Text>
+          <Text style={styles.date}>{item.date.split('T')[0]}</Text>
+          {item.description ? <Text style={styles.desc}>{item.description}</Text> : null}
+        </View>
+        <View style={styles.amountContainer}>
+          <Text style={[styles.amount, { color: isIngreso ? '#2ECC71' : '#FF5252' }]}>
+            {isIngreso ? '+' : '-'}${item.amount.toFixed(2)}
+          </Text>
+          <Text style={styles.accName}>{item.account_name}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
-      {/* Header Personalizado */}
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
+        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
           <Text style={styles.backIcon}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Historial</Text>
+        <Text style={styles.title}>Historial</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      {/* Lista Principal */}
-      <FlatList
-        data={transactions}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListHeaderComponent={
-          <Text style={styles.sectionLabel}>Tus últimos movimientos</Text>
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No hay registros todavía.</Text>
-          </View>
-        }
-      />
+      <View style={styles.searchBarContainer}>
+        <TextInput 
+          style={styles.searchInput}
+          placeholder="Buscar descripcion o categoria..."
+          value={searchText}
+          onChangeText={(txt) => { setSearchText(txt); setPage(0); }}
+        />
+      </View>
+
+      <View style={styles.filtersWrapper}>
+        <TouchableOpacity style={styles.dropdownBtn} onPress={() => setActiveDropdown('type')}>
+          <Text style={styles.dropdownLabel}>Tipo</Text>
+          <Text style={styles.dropdownValue}>{getLabel('type')} ▼</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.dropdownBtn} onPress={() => setActiveDropdown('acc')}>
+          <Text style={styles.dropdownLabel}>Cuenta</Text>
+          <Text style={styles.dropdownValue}>{getLabel('acc')} ▼</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.dropdownBtn} onPress={() => setActiveDropdown('cat')}>
+          <Text style={styles.dropdownLabel}>Categoria</Text>
+          <Text style={styles.dropdownValue}>{getLabel('cat')} ▼</Text>
+        </TouchableOpacity>
+      </View>
+
+      {renderDropdownModal()}
+
+      {loading ? (
+        <ActivityIndicator size="large" color="#6200EE" style={{ flex: 1 }} />
+      ) : (
+        <>
+          <FlatList
+            data={paginatedData}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={renderItem}
+            contentContainerStyle={styles.list}
+            ListEmptyComponent={<Text style={styles.empty}>No se encontraron movimientos</Text>}
+          />
+          
+          {totalPages > 1 && (
+            <View style={styles.pagination}>
+              <TouchableOpacity disabled={page === 0} onPress={() => setPage(page - 1)} style={[styles.pageBtn, page === 0 && styles.disabledBtn]}>
+                <Text style={styles.pageText}>Anterior</Text>
+              </TouchableOpacity>
+              <Text style={styles.pageNumber}>{page + 1} de {totalPages}</Text>
+              <TouchableOpacity disabled={page >= totalPages - 1} onPress={() => setPage(page + 1)} style={[styles.pageBtn, page >= totalPages - 1 && styles.disabledBtn]}>
+                <Text style={styles.pageText}>Siguiente</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </>
+      )}
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    height: 60,
-    paddingHorizontal: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backIcon: {
-    fontSize: 35,
-    color: '#000',
-    fontWeight: '300',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-  },
-  listContent: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  sectionLabel: {
-    fontSize: 14,
-    color: '#808080',
-    marginBottom: 20,
-    fontWeight: '500',
-  },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    paddingVertical: 12,
-    marginBottom: 10,
-    // Estilo más minimalista sin bordes pesados
-  },
-  iconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  iconText: {
-    fontSize: 22,
-  },
-  infoContainer: {
-    flex: 1,
-    marginLeft: 15,
-  },
-  titleText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  subtitleText: {
-    fontSize: 13,
-    color: '#808080',
-    marginTop: 2,
-  },
-  amountText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  emptyState: {
-    marginTop: 100,
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: '#808080',
-    fontSize: 16,
-  }
+  container: { flex: 1, backgroundColor: '#F8F9FE' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 15, backgroundColor: '#FFF' },
+  backBtn: { width: 40, height: 40, justifyContent: 'center' },
+  backIcon: { fontSize: 40, color: '#000' },
+  title: { fontSize: 18, fontWeight: 'bold' },
+  searchBarContainer: { padding: 10, backgroundColor: '#FFF' },
+  searchInput: { backgroundColor: '#F0F0F0', padding: 12, borderRadius: 10, fontSize: 14 },
+  filtersWrapper: { flexDirection: 'row', padding: 10, backgroundColor: '#FFF', borderBottomWidth: 1, borderColor: '#EEE', justifyContent: 'space-between' },
+  dropdownBtn: { flex: 1, backgroundColor: '#F0F0F0', padding: 8, borderRadius: 8, marginHorizontal: 3, alignItems: 'center' },
+  dropdownLabel: { fontSize: 10, color: '#666', marginBottom: 2 },
+  dropdownValue: { fontSize: 12, fontWeight: 'bold', color: '#333' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '50%' },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, textAlign: 'center' },
+  modalOption: { paddingVertical: 15, borderBottomWidth: 1, borderColor: '#EEE', alignItems: 'center' },
+  modalOptionText: { fontSize: 16, color: '#333' },
+  list: { padding: 15 },
+  card: { flexDirection: 'row', backgroundColor: '#FFF', padding: 15, borderRadius: 15, marginBottom: 10, alignItems: 'center', elevation: 1 },
+  indicator: { width: 4, height: '80%', borderRadius: 2, marginRight: 12 },
+  info: { flex: 1 },
+  catName: { fontSize: 16, fontWeight: 'bold', color: '#333' },
+  date: { fontSize: 12, color: '#999' },
+  desc: { fontSize: 12, color: '#666', fontStyle: 'italic' },
+  amountContainer: { alignItems: 'flex-end' },
+  amount: { fontSize: 16, fontWeight: 'bold' },
+  accName: { fontSize: 11, color: '#999' },
+  empty: { textAlign: 'center', marginTop: 50, color: '#999' },
+  pagination: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, backgroundColor: '#FFF', borderTopWidth: 1, borderColor: '#EEE' },
+  pageBtn: { paddingVertical: 8, paddingHorizontal: 15, backgroundColor: '#6200EE', borderRadius: 10 },
+  disabledBtn: { backgroundColor: '#CCC' },
+  pageText: { color: '#FFF', fontWeight: 'bold', fontSize: 12 },
+  pageNumber: { fontSize: 14, color: '#666', fontWeight: '600' }
 });
 
 export default HistoryScreen;

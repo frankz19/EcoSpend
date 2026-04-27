@@ -1,105 +1,111 @@
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  TouchableOpacity 
-} from 'react-native';
-// Importación moderna
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CategoryService, Category } from '../../services/categoryService';
 
 interface Props {
+  userId: number;
   onAdd: () => void;
+  onEdit: (cat: Category) => void;
   onBack: () => void;
 }
 
-const CategoriesScreen = ({ onAdd, onBack }: Props) => {
-  const categories = [
-    { id: '1', name: 'Comida', icon: '?', color: '#FFEBEE', textColor: '#D32F2F' },
-    { id: '2', name: 'Transporte', icon: '?', color: '#E3F2FD', textColor: '#1976D2' },
-    { id: '3', name: 'Salud', icon: '?', color: '#E8F5E9', textColor: '#388E3C' },
-    { id: '4', name: 'Ocio', icon: '?', color: '#F3E5F5', textColor: '#7B1FA2' },
-    { id: '5', name: 'Educación', icon: '?', color: '#FFF3E0', textColor: '#F57C00' },
-    { id: '6', name: 'Hogar', icon: '?', color: '#EFEBE9', textColor: '#5D4037' },
-  ];
+const CategoriesScreen = ({ userId, onAdd, onEdit, onBack }: Props) => {
+  const [cats, setCats] = useState<Category[]>([]);
 
-  const renderItem = ({ item }: { item: typeof categories[0] }) => (
-    <TouchableOpacity style={[styles.categoryCard, { backgroundColor: item.color }]}>
-      <Text style={styles.categoryIcon}>{item.icon}</Text>
-      <Text style={[styles.categoryName, { color: item.textColor }]}>{item.name}</Text>
-    </TouchableOpacity>
-  );
+  const loadCategories = async () => {
+    const data = await CategoryService.getCategories(userId);
+    setCats(data);
+  };
+
+  useEffect(() => {
+    loadCategories();
+  }, [userId]);
+
+  const handleCategoryPress = (category: Category) => {
+    if(category.name == 'Saldo Inicial')
+    {
+      Alert.alert(
+        'Categoría Protegida',
+        'Esta categoría es del sistema y no puede ser modificada'
+      );
+      return;
+    }
+
+    Alert.alert(
+      'Opciones de Categoría',
+      `¿Qué deseas hacer con "${category.name}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Editar', onPress: () => onEdit(category) },
+        { text: 'Eliminar', style: 'destructive', onPress: () => confirmDelete(category) }
+      ]
+    );
+  };
+
+  const confirmDelete = (category: Category) => {
+    Alert.alert(
+      'Eliminar Categoría',
+      `¿Estás seguro de que deseas eliminar "${category.name}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Sí, eliminar', 
+          style: 'destructive',
+          onPress: async () => {
+            const res = await CategoryService.deleteCategory(category.id);
+            if (res.success) {
+              loadCategories();
+            } else {
+              Alert.alert('No se pudo eliminar', res.error); 
+            }
+          }
+        }
+      ]
+    );
+  };
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backIcon}>‹</Text>
+        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
+          <Text style={styles.back}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Categorías</Text>
-        <TouchableOpacity style={styles.headerAdd} onPress={onAdd}>
-          <Text style={styles.headerAddText}>+</Text>
+        <Text style={styles.title}>Categorías</Text>
+        <TouchableOpacity onPress={onAdd} style={styles.addBtn}>
+          <Text style={styles.addText}>+</Text>
         </TouchableOpacity>
       </View>
-
-      <FlatList
-        data={categories}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
+      <FlatList 
+        data={cats}
         numColumns={2}
-        columnWrapperStyle={styles.row}
-        contentContainerStyle={styles.listContent}
-        ListHeaderComponent={
-          <Text style={styles.subtitle}>Gestiona tus etiquetas de gastos e ingresos</Text>
-        }
+        keyExtractor={item => item.id.toString()}
+        renderItem={({ item }) => (
+          <TouchableOpacity 
+            style={[styles.card, { backgroundColor: item.color + '15', borderColor: item.color + '40', borderWidth: 1 }]}
+            onPress={() => handleCategoryPress(item)}
+            activeOpacity={0.7}
+          >
+            <MaterialCommunityIcons name={item.icon as any} size={35} color={item.color} style={{ marginBottom: 10 }} />
+            <Text style={{ fontWeight: 'bold', color: '#333' }}>{item.name}</Text>
+          </TouchableOpacity>
+        )}
+        contentContainerStyle={{ padding: 10 }}
       />
-
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.mainAddButton} onPress={onAdd}>
-          <Text style={styles.mainAddButtonText}>Crear nueva categoría</Text>
-        </TouchableOpacity>
-      </View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
-  header: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    height: 60, 
-    paddingHorizontal: 15 
-  },
-  backButton: { width: 40, height: 40, justifyContent: 'center' },
-  backIcon: { fontSize: 35, color: '#000', fontWeight: '300' },
-  headerTitle: { fontSize: 18, fontWeight: 'bold' },
-  headerAdd: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-end' },
-  headerAddText: { fontSize: 28, color: '#6200EE' },
-  subtitle: { fontSize: 14, color: '#808080', marginBottom: 20 },
-  listContent: { padding: 20 },
-  row: { justifyContent: 'space-between' },
-  categoryCard: {
-    width: '47%',
-    height: 110,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  categoryIcon: { fontSize: 32, marginBottom: 8 },
-  categoryName: { fontSize: 14, fontWeight: 'bold' },
-  footer: { padding: 20 },
-  mainAddButton: {
-    backgroundColor: '#6200EE',
-    height: 55,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  mainAddButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
+  container: { flex: 1, backgroundColor: '#FFF' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 15 },
+  backBtn: { width: 40, height: 40, justifyContent: 'center' },
+  back: { fontSize: 40, color: '#000', marginTop: -10 },
+  title: { fontSize: 18, fontWeight: 'bold' },
+  addBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-end' },
+  addText: { fontSize: 28, color: '#6200EE' },
+  card: { flex: 1, margin: 8, padding: 25, borderRadius: 15, alignItems: 'center' }
 });
 
 export default CategoriesScreen;
