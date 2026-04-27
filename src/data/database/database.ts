@@ -14,6 +14,14 @@ export const initDatabase = async () => {
   try {
     db.execSync(`ALTER TABLE Categories ADD COLUMN limit_amount REAL DEFAULT 0;`);
   } catch (_) {}
+
+  try {
+    db.execSync(`ALTER TABLE Reminders ADD COLUMN reminder_type TEXT DEFAULT 'alarma';`);
+  } catch (_) {}
+
+  try {
+    db.execSync(`ALTER TABLE Reminders ADD COLUMN recurrence TEXT;`);
+  } catch (_) {}
 };
 
 export const getDatabase = () => db;

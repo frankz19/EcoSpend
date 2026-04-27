@@ -17,11 +17,13 @@ import ReportsScreen from './src/screens/reports/ReportsScreen';
 import RemindersScreen from './src/screens/reminders/RemindersScreen';
 import AddReminderScreen from './src/screens/reminders/AddReminderScreen';
 import { Category } from './src/services/categoryService';
+import { Reminder } from './src/services/reminderService';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('welcome');
   const [userId, setUserId] = useState<number | null>(null);
   const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);
+  const [reminderToEdit, setReminderToEdit] = useState<Reminder | null>(null);
   const [dbReady, setDbReady] = useState(false);
 
   useEffect(() => {
@@ -90,9 +92,22 @@ export default function App() {
       case 'reports':
         return <ReportsScreen userId={userId!} onBack={() => setCurrentScreen('dashboard')} />;
       case 'reminders':
-        return <RemindersScreen userId={userId!} onBack={() => setCurrentScreen('dashboard')} onAdd={() => setCurrentScreen('add_reminder')} />;
+        return (
+          <RemindersScreen
+            userId={userId!}
+            onBack={() => setCurrentScreen('dashboard')}
+            onAdd={() => { setReminderToEdit(null); setCurrentScreen('add_reminder'); }}
+            onEdit={(r) => { setReminderToEdit(r); setCurrentScreen('add_reminder'); }}
+          />
+        );
       case 'add_reminder':
-        return <AddReminderScreen userId={userId!} onBack={() => setCurrentScreen('reminders')} />;
+        return (
+          <AddReminderScreen
+            userId={userId!}
+            reminder={reminderToEdit || undefined}
+            onBack={() => { setReminderToEdit(null); setCurrentScreen('reminders'); }}
+          />
+        );
       default:
         return <WelcomeScreen onStart={() => setCurrentScreen('login')} />;
     }

@@ -58,6 +58,8 @@ CREATE TABLE IF NOT EXISTS Reminders (
     due_date DATETIME NOT NULL,
     is_paid INTEGER DEFAULT 0 CHECK(is_paid IN (0, 1)),
     notification_id TEXT,
+    reminder_type TEXT DEFAULT 'alarma' CHECK(reminder_type IN ('alarma', 'agenda')),
+    recurrence TEXT CHECK(recurrence IN ('semanal', 'quincenal', 'mensual', 'anual')),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
 );
