@@ -1,4 +1,7 @@
 import { Currency } from './accountService';
+import * as SecureStore from 'expo-secure-store';
+
+const RATES_KEY = 'eco_global_rates';
 
 export interface ExchangeRate {
   rate: number;
@@ -12,12 +15,26 @@ let _globalRates: Record<string, number> = {
 };
 
 export const CurrencyService = {
+  async loadRates(): Promise<void> {
+    try {
+      const stored = await SecureStore.getItemAsync(RATES_KEY);
+      if (stored) {
+        _globalRates = { ..._globalRates, ...JSON.parse(stored) };
+      }
+    } catch (error) {
+    }
+  },
+
   getRate(currency: string): number {
     return _globalRates[currency] || 1;
   },
 
-  setRate(currency: string, rate: number): void {
+  async setRate(currency: string, rate: number): Promise<void> {
     _globalRates[currency] = rate;
+    try {
+      await SecureStore.setItemAsync(RATES_KEY, JSON.stringify(_globalRates));
+    } catch (error) {
+    }
   },
 
   convert(amount: number, from: Currency, to: Currency, historicalRate?: number): number {

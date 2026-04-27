@@ -4,11 +4,10 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
 
-// Servicios y Datos
 import { initDatabase } from './src/data/database/database';
 import { NotificationService } from './src/services/notificationService';
+import { CurrencyService } from './src/services/currencyService';
 
-// Pantallas
 import WelcomeScreen from './src/screens/WelcomeScreen';
 import LoginScreen from './src/screens/auth/LoginScreen';
 import RegisterScreen from './src/screens/auth/RegisterScreen';
@@ -38,12 +37,11 @@ export default function App() {
     const setup = async () => {
       try {
         await initDatabase();
+        await CurrencyService.loadRates();
         
-        // Aislamos las notificaciones. Si fallan en el simulador, no romperán el inicio de sesión.
         try {
           await NotificationService.requestPermissions();
         } catch (notifError) {
-          console.warn("Permisos de notificación omitidos", notifError);
         }
         
         const savedSession = await SecureStore.getItemAsync('user_session');
@@ -64,7 +62,6 @@ export default function App() {
               setUserId(id);
               setCurrentScreen('dashboard');
             } else {
-              // Si el usuario cancela la huella, va a login, pero NO borramos la sesión
               setCurrentScreen('login');
             }
           } else {
@@ -75,9 +72,7 @@ export default function App() {
           setCurrentScreen('welcome');
         }
       } catch (error) {
-        // Si hay un error real de deserialización, lo capturamos
-        console.error("Error crítico leyendo sesión:", error);
-        await SecureStore.deleteItemAsync('user_session'); // Limpiamos basura
+        await SecureStore.deleteItemAsync('user_session'); 
         setCurrentScreen('login');
       } finally {
         setDbReady(true);
@@ -86,7 +81,6 @@ export default function App() {
     setup();
   }, []);
 
-  // Mientras la DB se inicializa y verificamos seguridad, mostramos un loader
   if (!dbReady || currentScreen === 'loading') {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF' }}>
@@ -101,14 +95,12 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    // Seguridad: Limpiar token al cerrar sesión
     await SecureStore.deleteItemAsync('user_session');
     setUserId(null);
     setCurrentScreen('login');
   };
 
   const renderScreen = () => {
-    // Protección de rutas: Si la pantalla requiere auth y no hay userId, mandar a login
     const screensRequiringAuth = [
       'dashboard', 'transaction_form', 'history', 'accounts', 
       'add_account', 'categories', 'add_category', 'reports', 

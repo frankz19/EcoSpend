@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { ReminderService } from '../../services/reminderService';
@@ -9,16 +9,25 @@ interface Props {
   onBack: () => void;
 }
 
+const RECURRENCES = [
+  { label: 'Una vez', value: 'none' },
+  { label: 'Diario', value: 'daily' },
+  { label: 'Semanal', value: 'weekly' },
+  { label: 'Mensual', value: 'monthly' },
+  { label: 'Anual', value: 'yearly' }
+];
+
 const AddReminderScreen = ({ userId, onBack }: Props) => {
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date());
+  const [recurrence, setRecurrence] = useState('none');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
 
   const handleSave = async () => {
     if (!title) {
-      Alert.alert('Error', 'El título es obligatorio');
+      Alert.alert('Error', 'El titulo es obligatorio');
       return;
     }
     if (date.getTime() <= Date.now()) {
@@ -28,7 +37,7 @@ const AddReminderScreen = ({ userId, onBack }: Props) => {
 
     const parsedAmount = amount ? parseFloat(amount) : 0;
     
-    await ReminderService.addReminder(userId, title, parsedAmount, date);
+    await ReminderService.addReminder(userId, title, parsedAmount, date, recurrence);
     onBack();
   };
 
@@ -42,7 +51,7 @@ const AddReminderScreen = ({ userId, onBack }: Props) => {
         <View style={{ width: 40 }} />
       </View>
 
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.label}>Servicio o Pago</Text>
         <TextInput
           style={styles.input}
@@ -70,6 +79,21 @@ const AddReminderScreen = ({ userId, onBack }: Props) => {
               {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </Text>
           </TouchableOpacity>
+        </View>
+
+        <Text style={styles.label}>Frecuencia de repeticion</Text>
+        <View style={styles.recurrenceContainer}>
+            {RECURRENCES.map((req) => (
+                <TouchableOpacity 
+                    key={req.value}
+                    style={[styles.reqBtn, recurrence === req.value && styles.reqBtnActive]}
+                    onPress={() => setRecurrence(req.value)}
+                >
+                    <Text style={[styles.reqText, recurrence === req.value && styles.reqTextActive]}>
+                        {req.label}
+                    </Text>
+                </TouchableOpacity>
+            ))}
         </View>
 
         {showDatePicker && (
@@ -100,7 +124,7 @@ const AddReminderScreen = ({ userId, onBack }: Props) => {
         <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
           <Text style={styles.saveBtnText}>Programar Alarma</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -117,6 +141,11 @@ const styles = StyleSheet.create({
   dateTimeContainer: { flexDirection: 'row', gap: 10 },
   dateBtn: { flex: 1, backgroundColor: '#F0F0F0', padding: 15, borderRadius: 10, alignItems: 'center' },
   dateText: { fontSize: 16, color: '#333', fontWeight: 'bold' },
+  recurrenceContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  reqBtn: { paddingHorizontal: 15, paddingVertical: 10, borderRadius: 20, backgroundColor: '#F0F0F0', borderWidth: 1, borderColor: 'transparent' },
+  reqBtnActive: { backgroundColor: '#EDE7F6', borderColor: '#6200EE' },
+  reqText: { color: '#666' },
+  reqTextActive: { color: '#6200EE', fontWeight: 'bold' },
   saveBtn: { backgroundColor: '#6200EE', padding: 18, borderRadius: 15, alignItems: 'center', marginTop: 40 },
   saveBtnText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' }
 });
