@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { TransactionService, TransactionWithDetails } from '../../services/transactionService';
 import { AccountService, Account } from '../../services/accountService';
 import { CategoryService, Category } from '../../services/categoryService';
+import { CurrencyService } from '../../services/currencyService';
 
 interface Props {
   userId: number;
@@ -25,7 +26,7 @@ const TransactionFormScreen = ({ userId, onBack, transaction}: Props) => {
 
   useEffect(() => {
     if (transaction) {
-      setAmount(transaction.amount.toString());
+      setAmount(transaction.amount.toFixed(2));
       setExchangeRate(transaction.exchange_rate ? transaction.exchange_rate.toString() : '1');
       setDescription(transaction.description || '');
       setType(transaction.category_type);
@@ -47,6 +48,16 @@ const TransactionFormScreen = ({ userId, onBack, transaction}: Props) => {
     };
     loadData();
   }, [userId, transaction]);
+
+  const handleAmountChange = (text: string) => {
+    const cleaned = text.replace(/[^0-9]/g, '');
+    if (!cleaned) {
+        setAmount('');
+        return;
+    }
+    const parsed = (parseInt(cleaned, 10) / 100).toFixed(2);
+    setAmount(parsed);
+  };
 
   const handleSave = async () => {
     if (!amount || !selectedAcc || !selectedCat) {
@@ -104,6 +115,11 @@ const TransactionFormScreen = ({ userId, onBack, transaction}: Props) => {
   const filteredCats = categories.filter(c => c.type === type && c.name !== 'Saldo Inicial');
   const selectedAccountObj = accounts.find(a => a.id === selectedAcc);
   const isVES = selectedAccountObj?.currency === 'VES';
+  
+  const currentBalance = selectedAccountObj?.current_balance || 0;
+  const numericAmount = parseFloat(amount) || 0;
+  const projectedBalance = type === 'Ingreso' ? currentBalance + numericAmount : currentBalance - numericAmount;
+  const symbol = selectedAccountObj ? CurrencyService.symbol(selectedAccountObj.currency) : '';
 
   if (loading) return <ActivityIndicator style={{ flex: 1 }} />;
 
@@ -127,7 +143,16 @@ const TransactionFormScreen = ({ userId, onBack, transaction}: Props) => {
           </TouchableOpacity>
         </View>
 
-        <TextInput style={styles.amountInput} placeholder="0.00" keyboardType="numeric" value={amount} onChangeText={setAmount} />
+        <TextInput style={styles.amountInput} placeholder="0.00" keyboardType="numeric" value={amount} onChangeText={handleAmountChange} />
+
+        {selectedAccountObj && (
+            <View style={styles.balanceInfo}>
+                <Text style={styles.balanceText}>Saldo actual: {symbol} {currentBalance.toFixed(2)}</Text>
+                <Text style={[styles.balanceText, projectedBalance < 0 && styles.negativeBalance]}>
+                    Saldo resultante: {symbol} {projectedBalance.toFixed(2)}
+                </Text>
+            </View>
+        )}
 
         {isVES && (
             <View style={styles.rateContainer}>
@@ -179,7 +204,10 @@ const styles = StyleSheet.create({
   activeGasto: { backgroundColor: '#FF5252' },
   activeIngreso: { backgroundColor: '#2ECC71' },
   whiteText: { color: '#FFF', fontWeight: 'bold' },
-  amountInput: { fontSize: 45, fontWeight: 'bold', textAlign: 'center', marginVertical: 20 },
+  amountInput: { fontSize: 45, fontWeight: 'bold', textAlign: 'center', marginVertical: 10 },
+  balanceInfo: { alignItems: 'center', marginBottom: 20 },
+  balanceText: { fontSize: 12, color: '#666', marginTop: 2 },
+  negativeBalance: { color: '#FF5252', fontWeight: 'bold' },
   rateContainer: { marginBottom: 15 },
   inputRate: { borderBottomWidth: 1, borderColor: '#EEE', padding: 10, fontSize: 16 },
   label: { fontSize: 14, color: '#666', marginBottom: 10, marginTop: 10 },

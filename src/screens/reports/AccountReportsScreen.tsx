@@ -1,34 +1,24 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ActivityIndicator, ScrollView, FlatList, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { TransactionService, TransactionWithDetails } from '../../services/transactionService';
-import { AccountService, Account } from '../../services/accountService';
-import { CurrencyService } from '../../services/currencyService';
-import { Currency } from '../../services/accountService';
 
 interface Props {
   userId: number;
   onBack: () => void;
-  onGoAccountReports: () => void;
 }
 
-interface CategoryGroup {
+interface AccountGroup {
   name: string;
-  icon: string;
-  color: string;
   total: number;
 }
 
-const ReportsScreen = ({ userId, onBack, onGoAccountReports }: Props) => {
+const AccountReportsScreen = ({ userId, onBack }: Props) => {
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState<TransactionWithDetails[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
   const [selectedType, setSelectedType] = useState<'Gasto' | 'Ingreso'>('Gasto');
-  const [filterAcc, setFilterAcc] = useState<number | null>(null);
-  const [activeDropdown, setActiveDropdown] = useState<'acc' | null>(null);
-
+  
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
@@ -43,23 +33,12 @@ const ReportsScreen = ({ userId, onBack, onGoAccountReports }: Props) => {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      const [txs, accs] = await Promise.all([
-        TransactionService.getFilteredTransactions(userId, {}),
-        AccountService.getAccounts(userId),
-      ]);
+      const txs = await TransactionService.getFilteredTransactions(userId, {});
       setTransactions(txs);
-      setAccounts(accs);
       setLoading(false);
     };
     loadData();
   }, [userId]);
-
-  const selectedAccountCurrency: Currency | null = useMemo(() => {
-    if (filterAcc === null) return null;
-    return accounts.find(a => a.id === filterAcc)?.currency ?? 'USD';
-  }, [filterAcc, accounts]);
-
-  const displayCurrency: Currency = selectedAccountCurrency ?? 'USD';
 
   const reportData = useMemo(() => {
     const start = new Date(startDate);
@@ -72,69 +51,33 @@ const ReportsScreen = ({ userId, onBack, onGoAccountReports }: Props) => {
       return (
         tx.category_type === selectedType &&
         d.getTime() >= start.getTime() &&
-        d.getTime() <= end.getTime() &&
-        (filterAcc === null || tx.account_id === filterAcc)
+        d.getTime() <= end.getTime()
       );
     });
 
-    const categoryMap: { [key: string]: CategoryGroup } = {};
+    const accountMap: { [key: string]: AccountGroup } = {};
     let total = 0;
 
     filtered.forEach(tx => {
-      const amountInDisplay = filterAcc === null
-          ? CurrencyService.convert(tx.amount, tx.account_currency as Currency, 'USD', tx.exchange_rate)
-          : tx.amount;
-
-      const key = tx.category_id;
-      if (!categoryMap[key]) {
-        categoryMap[key] = { name: tx.category_name, icon: tx.category_icon, color: tx.category_color, total: 0 };
+      const amountInUSD = tx.amount / tx.exchange_rate;
+      const key = tx.account_id.toString();
+      
+      if (!accountMap[key]) {
+        accountMap[key] = { name: tx.account_name, total: 0 };
       }
-      categoryMap[key].total += amountInDisplay;
-      total += amountInDisplay;
+      accountMap[key].total += amountInUSD;
+      total += amountInUSD;
     });
 
-    return { list: Object.values(categoryMap).sort((a, b) => b.total - a.total), total };
-  }, [transactions, filterAcc, selectedType, startDate, endDate]);
-
-  const handleSelect = (val: any) => {
-    if (activeDropdown === 'acc') setFilterAcc(val);
-    setActiveDropdown(null);
-  };
-
-  const renderDropdownModal = () => {
-    if (!activeDropdown) return null;
-    const options = [
-      { label: 'Todas las cuentas', value: null },
-      ...accounts.map(a => ({ label: `${a.name} (${a.currency ?? 'USD'})`, value: a.id })),
-    ];
-
-    return (
-      <Modal visible transparent animationType="slide">
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setActiveDropdown(null)}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Seleccionar Cuenta</Text>
-            <FlatList data={options} keyExtractor={(_, i) => i.toString()}
-              renderItem={({ item }) => (
-                <TouchableOpacity style={styles.modalOption} onPress={() => handleSelect(item.value)}>
-                  <Text style={styles.modalOptionText}>{item.label}</Text>
-                </TouchableOpacity>
-              )}
-            />
-          </View>
-        </TouchableOpacity>
-      </Modal>
-    );
-  };
-
-  const symbol = CurrencyService.symbol(displayCurrency);
-  const selectedAccLabel = filterAcc === null ? 'Todas' : accounts.find(a => a.id === filterAcc)?.name ?? '';
+    return { list: Object.values(accountMap).sort((a, b) => b.total - a.total), total };
+  }, [transactions, selectedType, startDate, endDate]);
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack}><Text style={styles.back}>‹</Text></TouchableOpacity>
-        <Text style={styles.title}>Reportes</Text>
-        <TouchableOpacity onPress={onGoAccountReports}><Text style={styles.actionBtn}>Cuentas</Text></TouchableOpacity>
+        <Text style={styles.title}>Reportes por Cuenta</Text>
+        <View style={{ width: 40 }} />
       </View>
 
       <View style={styles.datePickerContainer}>
@@ -181,26 +124,15 @@ const ReportsScreen = ({ userId, onBack, onGoAccountReports }: Props) => {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.filtersWrapper}>
-        <TouchableOpacity style={styles.dropdownBtn} onPress={() => setActiveDropdown('acc')}>
-          <Text style={styles.dropdownLabel}>Cuenta</Text>
-          <Text style={styles.dropdownValue}>{selectedAccLabel} ▼</Text>
-        </TouchableOpacity>
-      </View>
-      {renderDropdownModal()}
-
       {loading ? (
         <ActivityIndicator size="large" color="#6200EE" style={{ flex: 1 }} />
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.summaryCard}>
-            <Text style={styles.summaryLabel}>Total {selectedType === 'Gasto' ? 'Gastado' : 'Recibido'} {filterAcc === null ? '  (USD)' : ''}</Text>
+            <Text style={styles.summaryLabel}>Total {selectedType === 'Gasto' ? 'Gastado' : 'Recibido'} (USD)</Text>
             <Text style={[styles.summaryValue, { color: selectedType === 'Gasto' ? '#FF5252' : '#2ECC71' }]}>
-              {symbol} {reportData.total.toFixed(2)}
+              $ {reportData.total.toFixed(2)}
             </Text>
-            {filterAcc === null && (
-              <Text style={styles.rateNote}>Valores historicos calculados en USD</Text>
-            )}
           </View>
 
           {reportData.list.length > 0 ? reportData.list.map(item => {
@@ -208,14 +140,11 @@ const ReportsScreen = ({ userId, onBack, onGoAccountReports }: Props) => {
             return (
               <View key={item.name} style={styles.reportRow}>
                 <View style={styles.rowInfo}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <MaterialCommunityIcons name={item.icon as any} size={20} color={item.color} style={{ marginRight: 8 }} />
-                    <Text style={styles.catText}>{item.name}</Text>
-                  </View>
-                  <Text style={styles.amountText}>{symbol} {item.total.toFixed(2)} ({pct.toFixed(1)}%)</Text>
+                  <Text style={styles.accText}>{item.name}</Text>
+                  <Text style={styles.amountText}>$ {item.total.toFixed(2)} ({pct.toFixed(1)}%)</Text>
                 </View>
                 <View style={styles.progressBarBg}>
-                  <View style={[styles.progressBarFill, { width: `${pct}%`, backgroundColor: item.color }]} />
+                  <View style={[styles.progressBarFill, { width: `${pct}%`, backgroundColor: '#6200EE' }]} />
                 </View>
               </View>
             );
@@ -233,7 +162,6 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 10 },
   back: { fontSize: 40 },
   title: { fontSize: 18, fontWeight: 'bold' },
-  actionBtn: { color: '#6200EE', fontWeight: 'bold', fontSize: 16, marginRight: 10 },
   datePickerContainer: { flexDirection: 'row', paddingHorizontal: 20, paddingTop: 10, gap: 15 },
   dateBtn: { flex: 1, backgroundColor: '#F0F0F0', padding: 10, borderRadius: 10, alignItems: 'center' },
   dateLabel: { fontSize: 10, color: '#666' },
@@ -244,27 +172,17 @@ const styles = StyleSheet.create({
   activeIngreso: { backgroundColor: '#2ECC71' },
   whiteText: { color: '#FFF', fontWeight: 'bold' },
   grayText: { color: '#666' },
-  filtersWrapper: { flexDirection: 'row', padding: 10, backgroundColor: '#FFF', borderBottomWidth: 1, borderColor: '#EEE' },
-  dropdownBtn: { flex: 1, backgroundColor: '#F0F0F0', padding: 8, borderRadius: 8, marginHorizontal: 3, alignItems: 'center' },
-  dropdownLabel: { fontSize: 10, color: '#666', marginBottom: 2 },
-  dropdownValue: { fontSize: 11, fontWeight: 'bold', color: '#333' },
   scrollContent: { padding: 20 },
   summaryCard: { backgroundColor: '#FFF', padding: 30, borderRadius: 25, alignItems: 'center', marginBottom: 25, elevation: 2 },
   summaryLabel: { fontSize: 14, color: '#999' },
   summaryValue: { fontSize: 32, fontWeight: 'bold', marginTop: 10 },
-  rateNote: { fontSize: 11, color: '#AAA', marginTop: 6 },
   reportRow: { marginBottom: 20 },
   rowInfo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  catText: { fontSize: 15, fontWeight: '600', color: '#333' },
+  accText: { fontSize: 15, fontWeight: '600', color: '#333' },
   amountText: { fontSize: 13, color: '#666' },
   progressBarBg: { height: 8, backgroundColor: '#E0E0E0', borderRadius: 4, overflow: 'hidden' },
   progressBarFill: { height: '100%', borderRadius: 4 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#FFF', borderTopLeftRadius: 25, borderTopRightRadius: 25, padding: 20, maxHeight: '60%' },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
-  modalOption: { paddingVertical: 18, borderBottomWidth: 1, borderColor: '#F0F0F0', alignItems: 'center' },
-  modalOptionText: { fontSize: 16, color: '#333' },
   emptyText: { textAlign: 'center', marginTop: 40, color: '#999', fontStyle: 'italic' },
 });
 
-export default ReportsScreen;
+export default AccountReportsScreen;

@@ -25,6 +25,16 @@ const AddReminderScreen = ({ userId, onBack }: Props) => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
 
+  const handleAmountChange = (text: string) => {
+    const cleaned = text.replace(/[^0-9]/g, '');
+    if (!cleaned) {
+        setAmount('');
+        return;
+    }
+    const parsed = (parseInt(cleaned, 10) / 100).toFixed(2);
+    setAmount(parsed);
+  };
+
   const handleSave = async () => {
     if (!title) {
       Alert.alert('Error', 'El titulo es obligatorio');
@@ -66,7 +76,7 @@ const AddReminderScreen = ({ userId, onBack }: Props) => {
           placeholder="0.00"
           keyboardType="numeric"
           value={amount}
-          onChangeText={setAmount}
+          onChangeText={handleAmountChange}
         />
 
         <Text style={styles.label}>Fecha y Hora del aviso</Text>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthService } from '../../services/authService';
 
@@ -13,6 +13,7 @@ const RegisterScreen = ({ onBack, onRegisterSuccess }: Props) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
     if (!username || !email || !password || !confirmPassword) {
@@ -25,60 +26,73 @@ const RegisterScreen = ({ onBack, onRegisterSuccess }: Props) => {
       return;
     }
 
+    setLoading(true);
     const result = await AuthService.register(username, email, password);
+    setLoading(false);
 
     if (result.success) {
       Alert.alert('Éxito', 'Cuenta creada.', [{ text: 'OK', onPress: onRegisterSuccess }]);
     } else {
-      Alert.alert('Error', result.error);
+      Alert.alert('Error', result.error || 'Ocurrió un error en el registro');
     }
   };
 
   return (
-    <SafeAreaView style={styles.mainContainer} edges={['bottom']}>
+    <SafeAreaView style={styles.mainContainer}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
+        <TouchableOpacity style={styles.backButton} onPress={onBack} disabled={loading}>
           <Text style={styles.backIcon}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Registro</Text>
         <View style={{ width: 40 }} />
       </View>
-      <ScrollView contentContainerStyle={styles.contentContainer}>
+      <ScrollView contentContainerStyle={styles.contentContainer} keyboardShouldPersistTaps="handled">
         <Text style={styles.welcomeTitle}>Crear Cuenta</Text>
         <View style={styles.form}>
-
-          <TextInput 
-            style={styles.input} 
-            value={username} 
-            onChangeText={setUsername} 
-            placeholder="Usuario" 
-            autoCapitalize="none" 
+          <TextInput
+            style={styles.input}
+            value={username}
+            onChangeText={setUsername}
+            placeholder="Usuario"
+            autoCapitalize="none"
+            editable={!loading}
           />
-          <TextInput 
-            style={styles.input} 
-            value={email} 
-            onChangeText={setEmail} 
-            placeholder="Correo" 
-            keyboardType="email-address" 
-            autoCapitalize="none" 
+          <TextInput
+            style={styles.input}
+            value={email}
+            onChangeText={setEmail}
+            placeholder="Correo"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            editable={!loading}
           />
-          <TextInput 
-            style={styles.input} 
-            value={password} 
-            onChangeText={setPassword} 
-            placeholder="Contraseña" 
-            secureTextEntry 
+          <TextInput
+            style={styles.input}
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Contraseña"
+            secureTextEntry
+            editable={!loading}
           />
-          <TextInput 
-            style={styles.input} 
-            value={confirmPassword} 
-            onChangeText={setConfirmPassword} 
-            placeholder="Confirmar" 
-            secureTextEntry 
+          <TextInput
+            style={styles.input}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            placeholder="Confirmar Contraseña"
+            secureTextEntry
+            editable={!loading}
           />
         </View>
-        <TouchableOpacity style={styles.button} onPress={handleRegister}>
-          <Text style={styles.buttonText}>Registrarse</Text>
+        <TouchableOpacity 
+            style={[styles.button, loading && styles.buttonDisabled]} 
+            onPress={handleRegister}
+            disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.buttonText}>Registrarse</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -94,8 +108,9 @@ const styles = StyleSheet.create({
   contentContainer: { paddingHorizontal: 25, paddingTop: 20 },
   welcomeTitle: { fontSize: 28, fontWeight: 'bold', marginBottom: 30 },
   form: { gap: 15 },
-  input: { height: 55, borderColor: '#C0C0C0', borderWidth: 1, borderRadius: 25, paddingHorizontal: 20 },
+  input: { height: 55, borderColor: '#C0C0C0', borderWidth: 1, borderRadius: 25, paddingHorizontal: 20, color: '#000' },
   button: { height: 55, backgroundColor: '#6200EE', borderRadius: 25, alignItems: 'center', justifyContent: 'center', marginTop: 30 },
+  buttonDisabled: { backgroundColor: '#9E9E9E' },
   buttonText: { color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' },
 });
 

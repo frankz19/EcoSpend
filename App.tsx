@@ -19,6 +19,7 @@ import AddAccountScreen from './src/screens/accounts/AddAccountScreen';
 import CategoriesScreen from './src/screens/categories/CategoriesScreen';
 import AddCategoryScreen from './src/screens/categories/AddCategoryScreen';
 import ReportsScreen from './src/screens/reports/ReportsScreen';
+import AccountReportsScreen from './src/screens/reports/AccountReportsScreen';
 import RemindersScreen from './src/screens/reminders/RemindersScreen';
 import AddReminderScreen from './src/screens/reminders/AddReminderScreen';
 import { Category } from './src/services/categoryService';
@@ -104,7 +105,7 @@ export default function App() {
     const screensRequiringAuth = [
       'dashboard', 'transaction_form', 'history', 'accounts', 
       'add_account', 'categories', 'add_category', 'reports', 
-      'reminders', 'add_reminder'
+      'account_reports', 'reminders', 'add_reminder'
     ];
 
     if (screensRequiringAuth.includes(currentScreen) && !userId) {
@@ -192,7 +193,9 @@ export default function App() {
           />
         );
       case 'reports':
-        return <ReportsScreen userId={userId!} onBack={() => setCurrentScreen('dashboard')} />;
+        return <ReportsScreen userId={userId!} onBack={() => setCurrentScreen('dashboard')} onGoAccountReports={() => setCurrentScreen('account_reports')} />;
+      case 'account_reports':
+        return <AccountReportsScreen userId={userId!} onBack={() => setCurrentScreen('reports')} />;
       case 'reminders':
         return <RemindersScreen userId={userId!} onBack={() => setCurrentScreen('dashboard')} onAdd={() => setCurrentScreen('add_reminder')} />;
       case 'add_reminder':
