@@ -34,10 +34,16 @@ const DashboardScreen = ({ userId, onAddTransaction, onViewHistory, onViewAccoun
         AccountService.getAccounts(userId),
         TransactionService.getFilteredTransactions(userId, {}),
       ]);
-      
-      const totalUSD = CurrencyService.normalizeAmounts(
-        accs.map(a => ({ amount: a.current_balance, currency: a.currency })), 'USD'
-      );
+
+      let totalUSD = 0;
+      for (const acc of accs) {
+        if (acc.currency === 'USD') {
+          totalUSD += acc.current_balance;
+        } else {
+          const rate = CurrencyService.getRate(acc.currency);
+          totalUSD += acc.current_balance / rate;
+        }
+      }
       
       const currencies = [...new Set(accs.map(a => a.currency))].filter(c => c !== 'USD');
       
@@ -57,10 +63,10 @@ const DashboardScreen = ({ userId, onAddTransaction, onViewHistory, onViewAccoun
     setRateModalVisible(true);
   };
 
-  const saveRate = () => {
+  const saveRate = async () => {
     const parsed = parseFloat(rateInput.replace(',', '.'));
     if (isNaN(parsed) || parsed <= 0) return;
-    CurrencyService.setRate(selectedCurrencyToEdit, parsed);
+    await CurrencyService.setRate(selectedCurrencyToEdit, parsed);
     setRateModalVisible(false);
     loadData();
   };

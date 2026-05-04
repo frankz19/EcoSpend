@@ -49,6 +49,16 @@ const TransactionFormScreen = ({ userId, onBack, transaction}: Props) => {
     loadData();
   }, [userId, transaction]);
 
+  useEffect(() => {
+    if (transaction) return;
+    const acc = accounts.find(a => a.id === selectedAcc);
+    if (acc && acc.currency !== 'USD') {
+      setExchangeRate(CurrencyService.getRate(acc.currency).toString());
+    } else {
+      setExchangeRate('');
+    }
+  }, [selectedAcc, accounts]);
+
   const handleAmountChange = (text: string) => {
     const cleaned = text.replace(/[^0-9]/g, '');
     if (!cleaned) {
@@ -73,11 +83,11 @@ const TransactionFormScreen = ({ userId, onBack, transaction}: Props) => {
 
     const acc = accounts.find(a => a.id === selectedAcc);
     let finalRate = 1.0;
-    
-    if (acc && acc.currency === 'VES') {
+
+    if (acc && acc.currency !== 'USD') {
         finalRate = parseFloat(exchangeRate);
         if (isNaN(finalRate) || finalRate <= 0) {
-            Alert.alert('Error', 'Introduce una tasa de cambio valida para Bolivares');
+            Alert.alert('Error', `Introduce una tasa de cambio valida para ${acc.currency}`);
             return;
         }
     }
@@ -114,7 +124,7 @@ const TransactionFormScreen = ({ userId, onBack, transaction}: Props) => {
 
   const filteredCats = categories.filter(c => c.type === type && c.name !== 'Saldo Inicial');
   const selectedAccountObj = accounts.find(a => a.id === selectedAcc);
-  const isVES = selectedAccountObj?.currency === 'VES';
+  const isNonUSD = selectedAccountObj ? selectedAccountObj.currency !== 'USD' : false;
   
   const currentBalance = selectedAccountObj?.current_balance || 0;
   const numericAmount = parseFloat(amount) || 0;
@@ -154,10 +164,10 @@ const TransactionFormScreen = ({ userId, onBack, transaction}: Props) => {
             </View>
         )}
 
-        {isVES && (
+        {isNonUSD && (
             <View style={styles.rateContainer}>
-                <Text style={styles.label}>Tasa de cambio (Bs/$)</Text>
-                <TextInput style={styles.inputRate} placeholder="Ej: 36.50" keyboardType="numeric" value={exchangeRate} onChangeText={setExchangeRate} />
+                <Text style={styles.label}>Tasa de cambio ({symbol}/$)</Text>
+                <TextInput style={styles.inputRate} placeholder={`Ej: valor de 1 USD en ${selectedAccountObj?.currency}`} keyboardType="numeric" value={exchangeRate} onChangeText={setExchangeRate} />
             </View>
         )}
 

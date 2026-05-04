@@ -17,7 +17,7 @@ export interface TransactionWithDetails {
     category_color: string;
     category_type: 'Ingreso' | 'Gasto';
     account_name: string;
-    account_currency: 'USD' | 'VES';
+    account_currency: 'USD' | 'VES' | 'COP' | 'EUR';
 }
 
 export interface DashboardSummary {

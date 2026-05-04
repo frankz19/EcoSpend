@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { TransactionService, TransactionWithDetails } from '../../services/transactionService';
 import { AccountService, Account } from '../../services/accountService';
 import { CategoryService, Category } from '../../services/categoryService';
+import { CurrencyService } from '../../services/currencyService';
 
 interface Props {
   userId: number;
@@ -170,7 +171,8 @@ const HistoryScreen = ({ userId, onBack, onEdit }: Props) => {
   const renderItem = ({ item }: { item: TransactionWithDetails }) => {
     const isIngreso = item.category_type === 'Ingreso';
     const amountInUSD = item.amount / item.exchange_rate;
-    const isVES = item.account_currency === 'VES';
+    const isNonUSD = item.account_currency !== 'USD';
+    const currencySymbol = CurrencyService.symbol(item.account_currency);
 
     return (
       <TouchableOpacity style={styles.card} onLongPress={() => handleLongPress(item)} >
@@ -179,8 +181,8 @@ const HistoryScreen = ({ userId, onBack, onEdit }: Props) => {
           <Text style={styles.catName}>{item.category_name}</Text>
           <Text style={styles.date}>{item.date.split('T')[0]}</Text>
           {item.description ? <Text style={styles.desc}>{item.description}</Text> : null}
-          {isVES && (
-              <Text style={styles.txRateInfo}>Bs. {item.amount.toFixed(2)} (Tasa: {item.exchange_rate})</Text>
+          {isNonUSD && (
+              <Text style={styles.txRateInfo}>{currencySymbol} {item.amount.toFixed(2)} (Tasa: {item.exchange_rate})</Text>
           )}
         </View>
         <View style={styles.amountContainer}>
