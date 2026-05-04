@@ -46,7 +46,7 @@ const TransactionFormScreen = ({ userId, onBack, transaction}: Props) => {
       if (accList.length > 0 && !transaction) setSelectedAcc(accList[0].id);
       setLoading(false);
     };
-    
+    g
     loadData();
   }, [userId, transaction]);
 
