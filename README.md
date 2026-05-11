@@ -66,12 +66,12 @@ EcoSpend/
 
 1.  **Clonar el repositorio**:
     ```bash
-    git clone [https://github.com/tu-usuario/ecospend.git](https://github.com/tu-usuario/ecospend.git)
+    git clone https://github.com/frankz19/EcoSpend.git
     ```
 
 2.  **Instalar dependencias**:
     ```bash
-    npm install
+    npm install expo expo-crypto  expo-notifications expo-device expo-secure-store expo-local-authentication   
     ```
 
 3.  **Iniciar el proyecto**:
